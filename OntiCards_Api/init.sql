@@ -23,7 +23,6 @@ CREATE TYPE "public"."call_status_enum" AS ENUM (
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!! 【需填成实际数据库用户名】 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ALTER TYPE "public"."call_status_enum" OWNER TO "postgres";
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!! 【需填成实际数据库用户名】 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 -- ----------------------------
 -- Sequence structure for change_logs_id_seq
@@ -1001,6 +1000,15 @@ CREATE TABLE "public"."business_term_libraries" (
   "updated_at" timestamptz(6) DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
+COMMENT ON COLUMN "public"."business_term_libraries"."id" IS '主键ID';
+COMMENT ON COLUMN "public"."business_term_libraries"."name" IS '术语库名称（如 财务术语库、电商零售术语库）';
+COMMENT ON COLUMN "public"."business_term_libraries"."description" IS '术语库描述';
+COMMENT ON COLUMN "public"."business_term_libraries"."category" IS '行业分类（如 电商零售、财务管理、CRM客户管理）';
+COMMENT ON COLUMN "public"."business_term_libraries"."status" IS '状态：active=启用，inactive=禁用';
+COMMENT ON COLUMN "public"."business_term_libraries"."created_by" IS '创建人ID';
+COMMENT ON COLUMN "public"."business_term_libraries"."created_at" IS '创建时间';
+COMMENT ON COLUMN "public"."business_term_libraries"."updated_at" IS '更新时间';
+COMMENT ON TABLE "public"."business_term_libraries" IS '业务术语库表 - 存储业务术语库，一个库包含多个业务术语';
 
 CREATE INDEX "idx_business_term_libraries_status" ON "public"."business_term_libraries" USING btree (
   "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
