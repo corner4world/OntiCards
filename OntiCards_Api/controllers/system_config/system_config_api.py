@@ -434,11 +434,17 @@ class DataRetentionConfigResource(Resource):
 
         Query参数:
             - user_id: 用户ID（可选）
+
+        权限规则：
+          - 无论管理员还是普通用户，仅可查询系统级或自己的保留配置
+          - user_id 传他人 → 403
         """
-        if current_user.role != 'admin':
-            return resp(403, "无权限，仅管理员可访问", None, 403)
         try:
             user_id = request.args.get('user_id') or None
+
+            # 只能查系统级（user_id 为空）或自己的（user_id 等于自己）
+            if user_id and str(user_id) != str(current_user.id):
+                return resp(403, "无权限，仅可查询系统级或自己的保留配置", None, 403)
 
             def _get_retention(key, default_value):
                 if user_id:
@@ -550,14 +556,15 @@ class DataCleanupResource(Resource):
     数据清理手动触发接口
     POST /console/api/system_config/cleanup
 
-    用于手动触发数据清理任务（管理员使用）。
-    正常情况下，数据清理由定时任务自动执行，此接口仅用于特殊情况。
+    用于手动触发数据清理任务。
+    正常情况下，数据清理由定时任务自动执行，此接口用于让登录用户随时清理自己的数据。
+    无论是管理员还是普通用户，都仅清理自己账号下的数据，保留配置采用用户级配置（无则回退系统级）。
     """
 
     @login_required
     def post(self):
         """
-        手动触发数据清理
+        手动触发数据清理（仅清理当前登录用户的数据）
 
         请求参数（可选）：
             - type: 清理类型，可选值：
@@ -565,10 +572,13 @@ class DataCleanupResource(Resource):
                 - "stats"：只清理聚合统计
                 - "all" 或不传：清理所有（默认）
 
+        清理范围：
+            - 始终按 current_user.id 过滤
+            - 保留天数读取该用户的 query_logs_retention_days / stats_retention_days 配置
+            - 若用户未单独配置，则使用 system_configs 中的系统级配置（或默认值：180/365）
+
         注意：此操作可能需要较长时间，返回前会等待清理完成。
         """
-        if current_user.role != 'admin':
-            return resp(403, "无权限，仅管理员可访问", None, 403)
         try:
             payload = request.get_json(force=True) or {}
             cleanup_type = payload.get('type', 'all').strip().lower()
@@ -576,15 +586,17 @@ class DataCleanupResource(Resource):
             # 导入清理函数
             from task import cleanup_expired_logs, cleanup_expired_stats, cleanup_all
 
+            user_id = current_user.id  # 始终只清自己的
+
             results = {}
             start_time = datetime.now(tz=timezone(td(hours=8)))
 
             if cleanup_type == 'logs':
-                results = {"query_logs": cleanup_expired_logs()}
+                results = {"query_logs": cleanup_expired_logs(user_id=user_id)}
             elif cleanup_type == 'stats':
-                results = {"query_stats_daily": cleanup_expired_stats()}
+                results = {"query_stats_daily": cleanup_expired_stats(user_id=user_id)}
             else:
-                results = cleanup_all()
+                results = cleanup_all(user_id=user_id)
 
             end_time = datetime.now(tz=timezone(td(hours=8)))
             duration_ms = int((end_time - start_time).total_seconds() * 1000)

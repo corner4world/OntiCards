@@ -27,28 +27,44 @@ tz_cst = timezone(timedelta(hours=8))
 logger = logging.getLogger(__name__)
 
 
-def cleanup_expired_logs():
+def cleanup_expired_logs(user_id=None):
     """
     清理过期的查询日志
 
     根据 system_configs 表中的 query_logs_retention_days 配置，
     删除超过保留期限的历史记录。
 
+    Args:
+        user_id: 用户ID（可选）。
+                 - None：清理全系统过期日志（用于定时任务）
+                 - 指定用户：仅清理该用户的过期日志（按用户级配置 / 回退系统级）
+
     Returns:
         dict: 包含删除数量的字典 {"deleted": 0}
     """
     try:
-        # 获取保留天数配置（默认 180 天）
-        retention_days = get_config_as_int('query_logs_retention_days', None, default=180)
+        # 获取保留天数配置（支持用户级别，找不到时回退系统级，默认为 180 天）
+        retention_days = get_config_as_int(
+            'query_logs_retention_days', user_id=user_id, default=180
+        )
 
         # 计算截止日期
         cutoff_date = datetime.now(tz_cst) - timedelta(days=retention_days)
 
-        logger.info(f"[数据清理] 开始清理 {retention_days} 天前的查询日志（截止日期：{cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}）")
+        scope_label = f"用户 [{user_id}] 的" if user_id else "全系统的"
+        logger.info(
+            f"[数据清理] 开始清理{scope_label}{retention_days} 天前的查询日志"
+            f"（截止日期：{cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}）"
+        )
+
+        # 过滤条件：过期时间 + 可选用户
+        filters = [QueryLog.created_at < cutoff_date]
+        if user_id is not None:
+            filters.append(QueryLog.user_id == user_id)
 
         # 统计待删除数量
         count_before = db.session.query(func.count(QueryLog.id)).filter(
-            QueryLog.created_at < cutoff_date
+            *filters
         ).scalar() or 0
 
         if count_before == 0:
@@ -62,7 +78,7 @@ def cleanup_expired_logs():
         while True:
             # 每次删除一批
             deleted = db.session.query(QueryLog).filter(
-                QueryLog.created_at < cutoff_date
+                *filters
             ).limit(batch_size).delete(synchronize_session=False)
 
             db.session.commit()
@@ -88,7 +104,7 @@ def cleanup_expired_logs():
         return {"deleted": 0, "error": str(e)}
 
 
-def cleanup_expired_stats():
+def cleanup_expired_stats(user_id=None):
     """
     清理过期的聚合统计记录
 
@@ -98,21 +114,37 @@ def cleanup_expired_stats():
     注意：日聚合数据通常保留更长时间（默认 365 天），
     因为它们是重要的统计指标来源。
 
+    Args:
+        user_id: 用户ID（可选）。
+                 - None：清理全系统过期聚合
+                 - 指定用户：仅清理该用户的过期聚合（按用户级配置 / 回退系统级）
+
     Returns:
         dict: 包含删除数量的字典 {"deleted": 0}
     """
     try:
-        # 获取保留天数配置（默认 365 天）
-        retention_days = get_config_as_int('stats_retention_days', None, default=365)
+        # 获取保留天数配置（支持用户级别）
+        retention_days = get_config_as_int(
+            'stats_retention_days', user_id=user_id, default=365
+        )
 
         # 计算截止日期（使用日期类型比较）
         cutoff_date = (datetime.now(tz_cst) - timedelta(days=retention_days)).date()
 
-        logger.info(f"[数据清理] 开始清理 {retention_days} 天前的聚合统计（截止日期：{cutoff_date}）")
+        scope_label = f"用户 [{user_id}] 的" if user_id else "全系统的"
+        logger.info(
+            f"[数据清理] 开始清理{scope_label}{retention_days} 天前的聚合统计"
+            f"（截止日期：{cutoff_date}）"
+        )
+
+        # 过滤条件：过期日期 + 可选用户
+        filters = [QueryStatsDaily.stat_date < cutoff_date]
+        if user_id is not None:
+            filters.append(QueryStatsDaily.user_id == user_id)
 
         # 统计待删除数量
         count_before = db.session.query(func.count(QueryStatsDaily.id)).filter(
-            QueryStatsDaily.stat_date < cutoff_date
+            *filters
         ).scalar() or 0
 
         if count_before == 0:
@@ -121,7 +153,7 @@ def cleanup_expired_stats():
 
         # 执行删除
         deleted = db.session.query(QueryStatsDaily).filter(
-            QueryStatsDaily.stat_date < cutoff_date
+            *filters
         ).delete(synchronize_session=False)
 
         db.session.commit()
@@ -136,7 +168,7 @@ def cleanup_expired_stats():
         return {"deleted": 0, "error": str(e)}
 
 
-def cleanup_all():
+def cleanup_all(user_id=None):
     """
     执行所有清理任务
 
@@ -144,20 +176,25 @@ def cleanup_all():
     1. 清理过期查询日志
     2. 清理过期聚合统计
 
+    Args:
+        user_id: 用户ID（可选）。None 表示全系统清理（用于定时任务），
+                 指定用户时仅清理该用户的数据。
+
     Returns:
         dict: 包含各项清理结果的字典
     """
     logger.info("=" * 50)
-    logger.info("[数据清理] ========== 开始执行定时清理任务 ==========")
+    scope_label = f"用户 [{user_id}] 的" if user_id else "全系统的"
+    logger.info(f"[数据清理] ========== 开始清理{scope_label}数据 ==========")
 
     results = {}
 
     # 1. 清理查询日志
-    log_result = cleanup_expired_logs()
+    log_result = cleanup_expired_logs(user_id=user_id)
     results["query_logs"] = log_result
 
     # 2. 清理聚合统计
-    stats_result = cleanup_expired_stats()
+    stats_result = cleanup_expired_stats(user_id=user_id)
     results["query_stats_daily"] = stats_result
 
     total_deleted = log_result.get("deleted", 0) + stats_result.get("deleted", 0)

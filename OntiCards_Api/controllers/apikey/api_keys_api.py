@@ -68,9 +68,11 @@ class ApiKeysAPI(Resource):
         Query 参数（必须二选一）：
           - id: 查询单条 API Key（UUID）
           - user_id: 查询该用户下的所有 API Keys
+
+        权限规则：
+          - 无论管理员还是普通用户，均只能查询属于自己的 API Key
+          - user_id 传他人 → 403；id 指向他人 Key → 403
         """
-        if current_user.role != 'admin':
-            return resp(403, "无权限，仅管理员可访问", None, 403)
         try:
             key_id = request.args.get("id")
             user_id = request.args.get("user_id")
@@ -78,7 +80,7 @@ class ApiKeysAPI(Resource):
             if not key_id and not user_id:
                 return resp(400, "缺少查询参数，必须提供 id 或 user_id", None, 400)
 
-            # 1) 按 id 查单条（UUID 校验）
+            # 1) 按 id 查单条 → 必须归属自己
             if key_id:
                 if not _is_uuid(key_id):
                     return resp(400, "id 格式错误，必须为 UUID", None, 400)
@@ -86,6 +88,8 @@ class ApiKeysAPI(Resource):
                 obj = ApiKey.query.filter_by(id=key_id).first()
                 if not obj:
                     return resp(404, "API Key 不存在", None, 404)
+                if str(obj.user_id) != str(current_user.id):
+                    return resp(403, "无权限，仅可查询自己的 API Key", None, 403)
 
                 return resp(200, "success", {
                     "id": str(obj.id),
@@ -99,7 +103,10 @@ class ApiKeysAPI(Resource):
                     "updated_at": obj.updated_at.isoformat() if obj.updated_at else None,
                 })
 
-            # 2) 按 user_id 查列表
+            # 2) 按 user_id 查列表 → user_id 必须等于自己
+            if str(user_id) != str(current_user.id):
+                return resp(403, "无权限，仅可查询自己的 API Key", None, 403)
+
             records = (
                 ApiKey.query
                 .filter_by(user_id=user_id)
@@ -135,9 +142,10 @@ class ApiKeysAPI(Resource):
           - name: 必填
           - api_key: 可选（不传则系统生成）
           - expires_at: 可选（ISO8601）
+
+        权限规则：
+          - 无论管理员还是普通用户，均只能为自己（user_id 等于自己）创建 API Key
         """
-        if current_user.role != 'admin':
-            return resp(403, "无权限，仅管理员可访问", None, 403)
         try:
             payload = request.get_json(force=True) or {}
 
@@ -150,6 +158,10 @@ class ApiKeysAPI(Resource):
                 return resp(400, "user_id 不能为空", None, 400)
             if not name:
                 return resp(400, "name 不能为空", None, 400)
+
+            # 只能为自己创建 API Key
+            if str(user_id) != str(current_user.id):
+                return resp(403, "无权限，仅可为自己的账号创建 API Key", None, 403)
 
             expires_at = None
             if "expires_at" in payload:
@@ -194,9 +206,10 @@ class ApiKeysAPI(Resource):
         规则：
         - 允许修改 name / status / expires_at
         - expires_at 只允许延长，或清空（null = 永不过期）
+
+        权限规则：
+          - 无论管理员还是普通用户，均只能修改属于自己的 API Key
         """
-        if current_user.role != 'admin':
-            return resp(403, "无权限，仅管理员可访问", None, 403)
         try:
             payload = request.get_json(force=True) or {}
             key_id = payload.get("id")
@@ -207,6 +220,10 @@ class ApiKeysAPI(Resource):
             obj = ApiKey.query.filter_by(id=key_id).first()
             if not obj:
                 return resp(404, "API Key 不存在", None, 404)
+
+            # 只能修改属于自己的 API Key
+            if str(obj.user_id) != str(current_user.id):
+                return resp(403, "无权限，仅可修改自己的 API Key", None, 403)
 
             # 1️⃣ 修改 name
             if "name" in payload:
@@ -270,9 +287,10 @@ class ApiKeysAPI(Resource):
         删除 API Key
         Body:
           - id: 必填
+
+        权限规则：
+          - 无论管理员还是普通用户，均只能删除属于自己的 API Key
         """
-        if current_user.role != 'admin':
-            return resp(403, "无权限，仅管理员可访问", None, 403)
         try:
             payload = request.get_json(force=True) or {}
             key_id = payload.get("id")
@@ -283,6 +301,10 @@ class ApiKeysAPI(Resource):
             obj = ApiKey.query.filter_by(id=key_id).first()
             if not obj:
                 return resp(404, "API Key 不存在", None, 404)
+
+            # 只能删除属于自己的 API Key
+            if str(obj.user_id) != str(current_user.id):
+                return resp(403, "无权限，仅可删除自己的 API Key", None, 403)
 
             db.session.delete(obj)
             db.session.commit()
