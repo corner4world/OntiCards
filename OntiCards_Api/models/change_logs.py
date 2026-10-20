@@ -10,8 +10,13 @@ from extensions.ext_database import db
 
 class Changelog(db.Model):
     __tablename__ = "change_logs"
+    __table_args__ = (
+        db.Index('idx_change_logs_status', 'status'),
+        db.Index('uq_change_logs_version', 'version', unique=True),
+        {'comment': '变更日志表 - 记录用户数据源的库表结构变更历史，含版本号、变更标题、状态与 Markdown 明细'},
+    )
     id = db.Column(db.BigInteger, primary_key=True)
-    version = db.Column(db.String(50), nullable=False, unique=True)
+    version = db.Column(db.String(50), nullable=False)  # 唯一性由 __table_args__ 的 uq_change_logs_version 索引保证
     title = db.Column(db.String(200), nullable=False)
     content_md = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(10), nullable=False, default="hidden")

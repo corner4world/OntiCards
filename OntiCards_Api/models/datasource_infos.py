@@ -30,7 +30,7 @@ class DatasourceInfo(db.Model):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("uuid_generate_v4()"),
-        comment="主键ID"
+        comment='主键'
     )
 
     # 业务字段
@@ -38,13 +38,13 @@ class DatasourceInfo(db.Model):
         UUID(as_uuid=True),
         nullable=False,
         index=True,
-        comment="用户ID"
+        comment='用户id'
     )
 
     connect_info = db.Column(
-        VARCHAR(2048),  # 扩大长度以容纳加密后的数据
+        VARCHAR(2048),  # 需容纳加密后的连接串（ENC$... 约为原文 1.75 倍）
         nullable=False,
-        comment="数据源连接信息（加密存储）"
+        comment='数据源连接信息'
     )
 
     connect_name = db.Column(
@@ -64,13 +64,13 @@ class DatasourceInfo(db.Model):
         VARCHAR(255),
         nullable=False,
         server_default=text("'available'"),
-        comment="数据源状态，如 available、unavailable"
+        comment='数据源状态'
     )
 
     db_type = db.Column(
         VARCHAR(255),
         nullable=False,
-        comment="数据库类型，如 MySQL / PostgreSQL / SQL Server / Oracle"
+        comment='数据库类型'
     )
 
     database_name = db.Column(
@@ -110,8 +110,7 @@ class DatasourceInfo(db.Model):
     connect_info_hash = db.Column(
         VARCHAR(64),
         nullable=True,
-        index=True,
-        comment='连接信息的稳定哈希值（SHA256），用于与表结构数据关联匹配'
+        comment='连接信息的稳定哈希值（SHA256），用于与user_datasource_schemas表关联匹配'
     )
 
     # 唯一约束：同一用户下数据源名称（connect_name）唯一
@@ -120,6 +119,9 @@ class DatasourceInfo(db.Model):
     # 这部分去重在应用层（ExtractSchemaAPI 入口校验 + upsert 兜底）按 db_type 分支判断
     __table_args__ = (
         db.UniqueConstraint("user_id", "connect_name", name="uq_user_connect_name"),
+
+        db.Index('idx_datasource_infos_connect_info_hash', 'connect_info_hash'),
+        {'comment': '数据源信息表 - 存储用户接入的数据源连接信息、数据库类型、默认 schema 与数据表数量等元数据'},
     )
 
     @property

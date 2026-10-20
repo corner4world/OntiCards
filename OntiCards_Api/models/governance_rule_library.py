@@ -14,11 +14,18 @@ class GovernanceRuleLibrary(db.Model):
     """治理规则库模型"""
     __tablename__ = 'governance_rule_libraries'
 
+    __table_args__ = (
+
+        db.Index('idx_gr_lib_datasource_created', 'datasource_id', 'created_by'),
+
+        {'comment': '数据治理规则库表 - 存储用户创建的规则库，用于管理一组相关的治理规则'},
+
+    )
     id = db.Column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text('uuid_generate_v4()'),
-        comment='规则库ID'
+        comment='规则库唯一标识符'
     )
     name = db.Column(
         db.String(100),
@@ -28,30 +35,30 @@ class GovernanceRuleLibrary(db.Model):
     description = db.Column(
         db.Text,
         nullable=True,
-        comment='规则库描述'
+        comment='规则库描述说明'
     )
     status = db.Column(
         db.String(20),
         default='active',
-        comment='状态: active, inactive'
+        comment='规则库状态: active=启用, inactive=停用'
     )
     created_by = db.Column(
         UUID(as_uuid=True),
         nullable=False,
-        comment='创建者ID'
+        comment='创建该规则库的用户ID'
     )
     created_at = db.Column(
-        db.TIMESTAMP(timezone=True),
+        db.TIMESTAMP(),
         server_default=func.current_timestamp(),
         nullable=False,
-        comment='创建时间'
+        comment='规则库创建时间'
     )
     updated_at = db.Column(
-        db.TIMESTAMP(timezone=True),
+        db.TIMESTAMP(),
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
         nullable=False,
-        comment='更新时间'
+        comment='规则库最后更新时间'
     )
 
     # 关联数据源（必须关联，删除数据源时级联删除规则库）
@@ -59,7 +66,7 @@ class GovernanceRuleLibrary(db.Model):
         UUID(as_uuid=True),
         db.ForeignKey('datasource_infos.id', ondelete='CASCADE'),
         nullable=False,
-        comment='数据源ID'
+        comment='规则库绑定的数据源ID，必须关联，删除数据源时规则库会被级联删除'
     )
 
     # 关联规则

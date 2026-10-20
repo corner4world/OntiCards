@@ -27,6 +27,17 @@ class GovernanceReportFile(db.Model):
     """
     __tablename__ = 'governance_report_files'
 
+    __table_args__ = (
+
+        db.Index('idx_report_files_report_id', 'report_id'),
+
+        db.Index('idx_report_files_user_id', 'user_id'),
+
+        db.Index('idx_report_files_file_type', 'file_type'),
+
+        {'comment': '报告文件关联表 - 追踪同一报告的所有导出文件，解决一份报告多次导出产生多个文件的问题'},
+
+    )
     # 文件类型常量
     FILE_TYPE_MD = 'md'
     FILE_TYPE_DOCX = 'docx'
@@ -39,18 +50,18 @@ class GovernanceReportFile(db.Model):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text('uuid_generate_v4()'),
-        comment='文件记录ID'
+        comment='文件记录唯一标识符'
     )
     report_id = db.Column(
         UUID(as_uuid=True),
         db.ForeignKey('governance_reports.id', ondelete='CASCADE'),
         nullable=False,
-        comment='所属报告ID'
+        comment='所属报告ID，删除报告时通过CASCADE级联删除文件记录'
     )
     user_id = db.Column(
         UUID(as_uuid=True),
         nullable=False,
-        comment='用户ID（冗余存储便于清理）'
+        comment='所属用户ID，冗余存储便于文件清理和权限校验'
     )
     report_name = db.Column(
         db.String(255),
@@ -60,28 +71,28 @@ class GovernanceReportFile(db.Model):
     file_path = db.Column(
         db.String(512),
         nullable=False,
-        comment='文件完整路径'
+        comment='文件完整路径（统一使用正斜杠分隔符）'
     )
     file_name = db.Column(
         db.String(255),
         nullable=False,
-        comment='文件名（不含路径）'
+        comment='文件名（不含路径），用于显示'
     )
     file_type = db.Column(
         db.String(20),
         nullable=False,
-        comment='文件类型: md, docx, pdf, xlsx'
+        comment='文件类型: md=Markdown, docx=Word, pdf=PDF, xlsx=Excel'
     )
     file_size = db.Column(
         db.BigInteger,
         nullable=True,
-        comment='文件大小（字节）'
+        comment='文件大小，单位字节'
     )
     created_at = db.Column(
-        db.TIMESTAMP(timezone=True),
+        db.TIMESTAMP(),
         server_default=func.current_timestamp(),
         nullable=False,
-        comment='创建时间'
+        comment='文件记录创建时间'
     )
 
     def to_dict(self):

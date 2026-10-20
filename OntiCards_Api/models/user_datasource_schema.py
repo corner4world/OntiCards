@@ -37,9 +37,9 @@ class UserDatasourceSchema(db.Model):
         comment='数据库类型，如 oracle / postgres / mysql 等'
     )
     connect_info = db.Column(
-        VARCHAR(4096),  # 扩大长度以容纳加密后的数据
+        VARCHAR(2048),  # 需容纳加密后的连接串（ENC$... 约为原文 1.75 倍）
         nullable=False,
-        comment='数据库连接信息（加密存储）'
+        comment='数据库连接信息（建议脱敏或加密后保存）'
     )
     connect_name = db.Column(
         VARCHAR(2048),
@@ -49,7 +49,7 @@ class UserDatasourceSchema(db.Model):
     database_name = db.Column(
         VARCHAR(256),
         nullable=False,
-        comment='数据库名 / schema 名（按你的业务定义）'
+        comment='数据库名 / schema 名'
     )
     schema_text = db.Column(
         TEXT,
@@ -59,7 +59,7 @@ class UserDatasourceSchema(db.Model):
     table_name = db.Column(
         VARCHAR(255),
         nullable=False,
-        comment='数据表名'
+        comment='数据库表名'
     )
     db_version = db.Column(
         VARCHAR(255),
@@ -79,7 +79,7 @@ class UserDatasourceSchema(db.Model):
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
         nullable=False,
-        comment='更新时间'
+        comment='更新时间（可在应用层按需更新）'
     )
 
     is_filled = db.Column(
@@ -121,14 +121,13 @@ class UserDatasourceSchema(db.Model):
     schema_name = db.Column(
         VARCHAR(128),
         nullable=True,
-        comment='数据源 schema 名（PG/MSSQL/Trino/Oracle 生效；MySQL/SQLite 可空）'
+        comment='数据源 schema 名（PG/MSSQL/Trino/Oracle 用于去重和关联；MySQL/SQLite 可空）'
     )
 
     # 连接信息哈希：用于快速匹配和去重（因为 AES-GCM 加密每次使用随机 nonce，无法直接匹配）
     connect_info_hash = db.Column(
         VARCHAR(64),
         nullable=True,
-        index=True,
         comment='连接信息的稳定哈希值（SHA256），用于匹配和去重'
     )
 
@@ -142,6 +141,9 @@ class UserDatasourceSchema(db.Model):
                             name='uq_userid_connectinfo_schema_tablename'),
         # 通用索引：加速按 user + connect + schema 维度查询
         db.Index('idx_uds_user_conninfo_schema', 'user_id', 'connect_info', 'schema_name'),
+
+        db.Index('idx_user_datasource_schemas_connect_info_hash', 'connect_info_hash'),
+        {'comment': '用户数据源库表结构表 - 存储用户数据源下已采集的库表结构快照，按 schema 与表名区分，供 NL2SQL 检索使用'},
     )
 
     @property

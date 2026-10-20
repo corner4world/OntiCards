@@ -17,6 +17,7 @@ class User(db.Model, flask_login.UserMixin):
     __tablename__ = 'users'
     __table_args__ = (
         db.PrimaryKeyConstraint('id', name='user_pkeys'),
+        {'comment': '用户表 - 存储平台用户的账号、密码、角色、所属用户组与 Weaviate 向量空间等信息'},
     )
 
     def __init__(
@@ -91,6 +92,7 @@ class UserGroup(db.Model):
     __tablename__ = 'user_groups'
     __table_args__ = (
         db.PrimaryKeyConstraint('group_id', name='user_group_pkey'),
+        {'comment': '用户组表 - 存储用户组的名称、描述与创建人，用于按组管理用户及其资源权限'},
     )
 
     group_id = db.Column(UUID, server_default=db.text('uuid_generate_v4()'), comment='ID')

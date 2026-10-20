@@ -21,11 +21,12 @@ class PromptConfig(db.Model):
     """提示词配置表 - 存储系统中的提示词模板内容"""
     __tablename__ = "prompt_config"
 
+    __table_args__ = {'comment': '提示词配置表 - 存储各业务环节使用的提示词内容及其作用说明，并与项目目录中的提示词文件一一对应'}
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-        comment="主键ID"
+        comment='prompt_config，主键，自动生成'
     )
 
     prompt = Column(

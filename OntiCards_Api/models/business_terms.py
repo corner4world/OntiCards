@@ -31,9 +31,9 @@ class BusinessTerm(db.Model):
     )
     library_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("business_term_libraries.id", ondelete="CASCADE"),
+        ForeignKey("business_term_libraries.id", name="fk_business_terms_library",
+                   ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
-        index=True,
         comment="关联术语库ID"
     )
     term_name = Column(
@@ -44,7 +44,7 @@ class BusinessTerm(db.Model):
     term_alias = Column(
         Text,
         nullable=True,
-        comment="术语别名（JSON数组）"
+        comment='术语别名（JSON数组，如 ["成交金额", "商品成交总额"]）'
     )
     term_definition = Column(
         Text,
@@ -64,23 +64,22 @@ class BusinessTerm(db.Model):
     related_datacards = Column(
         Text,
         nullable=True,
-        comment="关联的数据卡片/表（JSON数组）"
+        comment='关联的数据卡片/表（JSON数组，如 [{"id":"...","name":"orders"}]）'
     )
     related_fields = Column(
         Text,
         nullable=True,
-        comment="关联的字段（JSON数组）"
+        comment='关联的字段（JSON数组，如 [{"table":"orders","field":"amount"}]）'
     )
     related_terms = Column(
         Text,
         nullable=True,
-        comment="关联的其他术语（JSON数组）"
+        comment='关联的其他术语（JSON数组，如 [{"id":"...","name":"客单价"}]）'
     )
     status = Column(
         String(20),
         nullable=False,
         default="active",
-        index=True,
         comment="状态：active=启用，inactive=禁用"
     )
     created_by = Column(
@@ -102,6 +101,13 @@ class BusinessTerm(db.Model):
 
     __table_args__ = (
         UniqueConstraint("library_id", "term_name", name="uq_business_terms_library_term"),
+
+
+        db.Index('idx_business_terms_library_id', 'library_id'),
+
+        db.Index('idx_business_terms_status', 'status'),
+
+        {'comment': '业务术语表 - 属于某个术语库，用于NL2SQL查询时的术语识别和展开'},
     )
 
     def get_term_alias_list(self) -> List[str]:

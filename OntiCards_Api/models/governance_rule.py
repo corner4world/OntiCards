@@ -23,6 +23,19 @@ class GovernanceRule(db.Model):
     """治理规则模型"""
     __tablename__ = 'governance_rules'
 
+    __table_args__ = (
+
+        db.Index('idx_governance_rules_library_id', 'library_id'),
+
+        db.Index('idx_governance_rules_enabled', 'enabled'),
+
+        db.Index('idx_governance_rules_target_table', 'target_table'),
+
+        db.Index('idx_governance_rules_rule_type', 'rule_type'),
+
+        {'comment': '数据治理规则表 - 存储具体的治理规则定义，包括规则类型、目标表/列、条件表达式等'},
+
+    )
     # 规则类型常量
     # 基础类型
     RULE_TYPE_NULL_CHECK = 'null_check'
@@ -119,23 +132,23 @@ class GovernanceRule(db.Model):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text('uuid_generate_v4()'),
-        comment='规则ID'
+        comment='规则唯一标识符'
     )
     library_id = db.Column(
         UUID(as_uuid=True),
         db.ForeignKey('governance_rule_libraries.id', ondelete='CASCADE'),
         nullable=True,
-        comment='规则库ID'
+        comment='所属规则库的ID，删除规则库时会级联删除该规则'
     )
     rule_name = db.Column(
         db.String(255),
         nullable=False,
-        comment='规则名称'
+        comment='规则名称，如"手机号非空检测"'
     )
     rule_type = db.Column(
         db.String(50),
         nullable=False,
-        comment='规则类型'
+        comment='规则类型: null_check=空值检测, unique=唯一性检测, format=格式检测, threshold=阈值检测, enum=枚举检测, custom_sql=自定义SQL, length_check=长度检测, range_check=范围检测, date_check=日期检测, consistency_check=一致性检测, freshness_check=新鲜度检测, value_distribution=值分布检测'
     )
 
     # 作用域：目标表
@@ -144,21 +157,21 @@ class GovernanceRule(db.Model):
     target_table = db.Column(
         db.String(255),
         nullable=True,
-        comment='目标表，*表示所有表'
+        comment='规则应用于的目标表名，不填则对所有表生效（多表模式下系统会自动识别相关表）'
     )
 
     # 作用域：目标列（单列场景）
     target_column = db.Column(
         db.String(255),
         nullable=True,
-        comment='目标列（单列场景）'
+        comment='规则应用于的目标列名'
     )
 
     # 条件表达式（单列场景）
     condition_expr = db.Column(
         db.Text,
         nullable=True,
-        comment='规则条件表达式'
+        comment='规则条件表达式，支持自然语言或 SQL 表达式（如手机号为空、金额大于等于 0）'
     )
 
     # 多条件配置（JSON格式）
@@ -172,53 +185,53 @@ class GovernanceRule(db.Model):
     conditions_config = db.Column(
         db.Text,
         nullable=True,
-        comment='多条件配置JSON'
+        comment='多条件配置JSON，用于composite复合规则类型，格式: {"conditions": [...], "condition_mode": "AND"}'
     )
 
     # 检测SQL语句（用于预览和执行）
     sql_text = db.Column(
         db.Text,
         nullable=True,
-        comment='检测SQL语句'
+        comment='规则对应的检测SQL语句，用于预览和执行时的查询语句'
     )
 
     severity = db.Column(
         db.String(20),
         default='warning',
-        comment='严重级别: critical, warning, info'
+        comment='规则严重级别: critical=严重需立即处理, warning=警告建议处理, info=参考信息'
     )
     description = db.Column(
         db.Text,
         nullable=True,
-        comment='规则描述'
+        comment='规则的详细描述说明，AI模式下存储用户输入的自然语言'
     )
     enabled = db.Column(
         db.Boolean,
         default=True,
-        comment='是否启用'
+        comment='规则是否启用: true=启用(执行时会被应用), false=禁用(执行时跳过)'
     )
     create_source = db.Column(
         db.String(20),
         default='manual',
-        comment='创建来源: manual=手动配置, template=模板导入, ai=AI智能解析'
+        comment='规则创建来源: manual=手动配置, template=模板导入, ai=AI智能解析'
     )
     db_type = db.Column(
         db.String(20),
         nullable=True,
-        comment='目标数据库类型（如 postgresql/mysql/mssql/oracle/sqlite/trino），从规则库关联的数据源继承'
+        comment='规则适用的目标数据库类型: postgresql/mysql/mssql/oracle/sqlite/trino/kingbase，从规则库关联的数据源继承'
     )
     created_at = db.Column(
-        db.TIMESTAMP(timezone=True),
+        db.TIMESTAMP(),
         server_default=func.current_timestamp(),
         nullable=False,
-        comment='创建时间'
+        comment='规则创建时间'
     )
     updated_at = db.Column(
-        db.TIMESTAMP(timezone=True),
+        db.TIMESTAMP(),
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
         nullable=False,
-        comment='更新时间'
+        comment='规则最后更新时间'
     )
 
     def get_conditions(self) -> List[Dict]:

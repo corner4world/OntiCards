@@ -35,14 +35,13 @@ class DatasourceTermLibrary(db.Model):
     datasource_id = Column(
         UUID(as_uuid=True),
         nullable=False,
-        index=True,
         comment="数据源ID"
     )
     library_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("business_term_libraries.id", ondelete="CASCADE"),
+        ForeignKey("business_term_libraries.id", name="fk_datasource_term_library_library",
+                   ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
-        index=True,
         comment="术语库ID"
     )
     is_enabled = Column(
@@ -79,6 +78,13 @@ class DatasourceTermLibrary(db.Model):
     __table_args__ = (
         # 同一数据源不能重复添加同一术语库
         UniqueConstraint("datasource_id", "library_id", name="uq_datasource_library"),
+
+
+        db.Index('idx_datasource_term_library_datasource_id', 'datasource_id'),
+
+        db.Index('idx_datasource_term_library_library_id', 'library_id'),
+
+        {'comment': '数据源-术语库关联表 - 建立数据源与术语库的多对多关系，一个数据源可添加多个术语库，一个术语库可被多个数据源引用'},
     )
 
     def to_dict(self) -> dict:

@@ -101,7 +101,7 @@ class QueryStatsDaily(db.Model):
     estimated_cost_cents = Column(
         Integer,
         default=0,
-        comment="预估成本(分)，仅供参考，实际费用以账单为准"
+        comment='预估成本（分），仅供参考，实际费用以账单为准'
     )
 
     cost_version = Column(
@@ -112,38 +112,38 @@ class QueryStatsDaily(db.Model):
     # === 性能统计（毫秒） ===
     avg_duration_ms = Column(
         Integer,
-        comment="平均耗时"
+        comment='平均耗时（毫秒）'
     )
 
     min_duration_ms = Column(
         Integer,
-        comment="最小耗时"
+        comment='最小耗时（毫秒）'
     )
 
     max_duration_ms = Column(
         Integer,
-        comment="最大耗时"
+        comment='最大耗时（毫秒）'
     )
 
     # === 各环节平均耗时 ===
     avg_vector_search_ms = Column(
         Integer,
-        comment="向量检索平均耗时"
+        comment='向量检索平均耗时（毫秒）'
     )
 
     avg_rerank_ms = Column(
         Integer,
-        comment="重排序平均耗时"
+        comment='重排序平均耗时（毫秒）'
     )
 
     avg_llm_gen_sql_ms = Column(
         Integer,
-        comment="LLM生成SQL平均耗时"
+        comment='LLM生成SQL平均耗时（毫秒）'
     )
 
     avg_sql_execution_ms = Column(
         Integer,
-        comment="SQL执行平均耗时"
+        comment='SQL执行平均耗时（毫秒）'
     )
 
     # === 召回质量统计 ===
@@ -179,6 +179,7 @@ class QueryStatsDaily(db.Model):
     # === 唯一约束 ===
     __table_args__ = (
         UniqueConstraint('user_id', 'stat_date', name='uq_user_stat_date'),
+        {'comment': '查询统计表（按天聚合）- 用于监控模块，记录每日用户查询的聚合统计数据'},
     )
 
     def __repr__(self):

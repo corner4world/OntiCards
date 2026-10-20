@@ -1,9 +1,7 @@
 /*
     【Onticards-数据库初始化脚本】
 
-    注意：
-    (1) 若需手动执行，则需要先创建数据库，后再执行
-    (2) Line 25 注意改为实际的数据库用户名
+    注意：若需手动执行，则需要先创建数据库，后再执行
 */
 
 
@@ -11,24 +9,9 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ----------------------------
--- Type structure for call_status_enum
--- ----------------------------
-DROP TYPE IF EXISTS "public"."call_status_enum";
-CREATE TYPE "public"."call_status_enum" AS ENUM (
-  'queued',
-  'processing',
-  'completed',
-  'failed'
-);
-
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!! 【需填成实际数据库用户名】 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-ALTER TYPE "public"."call_status_enum" OWNER TO "postgres";
-
--- ----------------------------
 -- Sequence structure for change_logs_id_seq
 -- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."change_logs_id_seq";
-CREATE SEQUENCE "public"."change_logs_id_seq"
+CREATE SEQUENCE IF NOT EXISTS "public"."change_logs_id_seq"
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 9223372036854775807
@@ -38,8 +21,7 @@ CACHE 1;
 -- ----------------------------
 -- Sequence structure for datacards_datasource_id_seq
 -- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."datacards_datasource_id_seq";
-CREATE SEQUENCE "public"."datacards_datasource_id_seq"
+CREATE SEQUENCE IF NOT EXISTS "public"."datacards_datasource_id_seq"
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
@@ -49,18 +31,25 @@ CACHE 1;
 -- ----------------------------
 -- Table structure for alembic_version
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."alembic_version";
-CREATE TABLE "public"."alembic_version" (
+CREATE TABLE IF NOT EXISTS "public"."alembic_version" (
   "version_num" varchar(32) COLLATE "pg_catalog"."default" NOT NULL
 )
 ;
-COMMENT ON TABLE "public"."alembic_version" IS '存储数据库版本迁移记录';
+COMMENT ON TABLE "public"."alembic_version" IS 'Alembic 版本记录表 - 记录数据库当前所处的迁移版本号，由 Alembic 自动维护，禁止手工写入';
+
+-- 固化 baseline：本文件代表 0001_baseline 这个版本下的「完整最新结构」。
+-- 阶段性的小改动（如把 connect_info 加宽到 2048）直接并入本文件，不单独出迁移脚本，
+-- 因此种子版本号保持 0001_baseline；只有当改动需要「在已有生产库上执行」时才写 migration，
+-- 那时再把这里同步成新的 head。
+INSERT INTO "public"."alembic_version" ("version_num")
+SELECT '0001_baseline'
+WHERE NOT EXISTS (SELECT 1 FROM "public"."alembic_version");
+
 
 -- ----------------------------
 -- Table structure for api_keys
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."api_keys";
-CREATE TABLE "public"."api_keys" (
+CREATE TABLE IF NOT EXISTS "public"."api_keys" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "user_id" uuid NOT NULL,
   "name" varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
@@ -81,13 +70,12 @@ COMMENT ON COLUMN "public"."api_keys"."expires_at" IS '过期时间';
 COMMENT ON COLUMN "public"."api_keys"."last_used_at" IS '最近一次成功调用接口的时间';
 COMMENT ON COLUMN "public"."api_keys"."created_at" IS '创建时间';
 COMMENT ON COLUMN "public"."api_keys"."updated_at" IS '更新时间';
-COMMENT ON TABLE "public"."api_keys" IS 'api_keys管理表，用于第三方平台（如 Coze / HiAgent）调用聚合检索接口的鉴权';
+COMMENT ON TABLE "public"."api_keys" IS 'API 密钥表 - 存储第三方平台（如 Coze / HiAgent）调用聚合检索接口所用的密钥，含状态、有效期与最近使用时间';
 
 -- ----------------------------
 -- Table structure for change_logs
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."change_logs";
-CREATE TABLE "public"."change_logs" (
+CREATE TABLE IF NOT EXISTS "public"."change_logs" (
   "id" int8 NOT NULL DEFAULT nextval('change_logs_id_seq'::regclass),
   "version" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
   "title" varchar(200) COLLATE "pg_catalog"."default" NOT NULL,
@@ -97,13 +85,12 @@ CREATE TABLE "public"."change_logs" (
   "updated_at" timestamptz(6) DEFAULT now(),
   PRIMARY KEY ("id")
 );
-COMMENT ON TABLE "public"."change_logs" IS '存储用户数据源的库表结构';
+COMMENT ON TABLE "public"."change_logs" IS '变更日志表 - 记录用户数据源的库表结构变更历史，含版本号、变更标题、状态与 Markdown 明细';
 
 -- ----------------------------
 -- Table structure for datacards_datasource
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."datacards_datasource";
-CREATE TABLE "public"."datacards_datasource" (
+CREATE TABLE IF NOT EXISTS "public"."datacards_datasource" (
   "id" int4 NOT NULL DEFAULT nextval('datacards_datasource_id_seq'::regclass),
   "doc_id" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "w_uuid" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -126,15 +113,14 @@ COMMENT ON COLUMN "public"."datacards_datasource"."user_id" IS '用户ID（冗�
 COMMENT ON COLUMN "public"."datacards_datasource"."datasource_id" IS '数据源ID（冗余字段，用于快速查询）';
 COMMENT ON COLUMN "public"."datacards_datasource"."table_name" IS '表名（冗余字段，用于快速查询）';
 COMMENT ON COLUMN "public"."datacards_datasource"."connect_name" IS '连接名称（冗余字段，便于显示）';
-COMMENT ON TABLE "public"."datacards_datasource" IS '存储数据卡片信息';
+COMMENT ON TABLE "public"."datacards_datasource" IS '数据卡片-数据源关联表 - 存储数据卡片与数据源、物理表的绑定关系及卡片内容，并冗余关键字段便于快速查询';
 
 -- ----------------------------
 -- Table structure for datasource_infos
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."datasource_infos";
-CREATE TABLE "public"."datasource_infos" (
+CREATE TABLE IF NOT EXISTS "public"."datasource_infos" (
   "user_id" uuid NOT NULL,
-  "connect_info" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "connect_info" varchar(2048) COLLATE "pg_catalog"."default" NOT NULL,
   "connect_info_hash" varchar(64) COLLATE "pg_catalog"."default",
   "connect_name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "table_num" int4 NOT NULL,
@@ -162,7 +148,7 @@ COMMENT ON COLUMN "public"."datasource_infos"."created_at" IS '创建时间';
 COMMENT ON COLUMN "public"."datasource_infos"."updated_at" IS '更新时间';
 COMMENT ON COLUMN "public"."datasource_infos"."id" IS '主键';
 COMMENT ON COLUMN "public"."datasource_infos"."catalog_type" IS 'Trino catalog 类型（如 mysql、postgresql），仅 Trino 数据源需要';
-COMMENT ON TABLE "public"."datasource_infos" IS '存储数据卡片的来源信息';
+COMMENT ON TABLE "public"."datasource_infos" IS '数据源信息表 - 存储用户接入的数据源连接信息、数据库类型、默认 schema 与数据表数量等元数据';
 
 -- 添加约束
 ALTER TABLE datasource_infos ADD CONSTRAINT uq_user_connect_name UNIQUE (user_id, connect_name);
@@ -173,8 +159,7 @@ CREATE INDEX IF NOT EXISTS idx_datasource_infos_connect_info_hash ON "public"."d
 -- ----------------------------
 -- Table structure for field_mapping
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."field_mapping";
-CREATE TABLE "public"."field_mapping" (
+CREATE TABLE IF NOT EXISTS "public"."field_mapping" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "datasource_id" uuid NOT NULL,
   "schema_hash" varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
@@ -207,13 +192,12 @@ COMMENT ON COLUMN "public"."field_mapping"."confidence" IS '映射置信度，�
 COMMENT ON COLUMN "public"."field_mapping"."mapping_basis" IS '映射依据（JSON格式），记录name_similarity、value_profile、llm_judgment等评分依据';
 COMMENT ON COLUMN "public"."field_mapping"."created_at" IS '创建时间';
 COMMENT ON COLUMN "public"."field_mapping"."updated_at" IS '更新时间';
-COMMENT ON TABLE "public"."field_mapping" IS '字段映射表，记录字段级别的语义映射关系';
+COMMENT ON TABLE "public"."field_mapping" IS '字段映射表 - 记录字段级的语义映射关系（源字段到目标字段），含映射类型、置信度与评分依据';
 
 -- ----------------------------
 -- Table structure for target_inventory_job
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."target_inventory_job";
-CREATE TABLE "public"."target_inventory_job" (
+CREATE TABLE IF NOT EXISTS "public"."target_inventory_job" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "user_id" uuid NOT NULL,
   "datasource_id" uuid NOT NULL,
@@ -242,13 +226,12 @@ COMMENT ON COLUMN "public"."target_inventory_job"."progress" IS '任务进度信
 COMMENT ON COLUMN "public"."target_inventory_job"."error_msg" IS '错误信息';
 COMMENT ON COLUMN "public"."target_inventory_job"."created_at" IS '创建时间';
 COMMENT ON COLUMN "public"."target_inventory_job"."updated_at" IS '更新时间';
-COMMENT ON TABLE "public"."target_inventory_job" IS '全域盘点任务表';
+COMMENT ON TABLE "public"."target_inventory_job" IS '全域盘点任务表 - 存储全域盘点任务的配置与执行状态，含目标表、参考表、字典文件、进度与错误信息';
 
 -- ----------------------------
 -- Table structure for target_inventory_job_result
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."target_inventory_job_result";
-CREATE TABLE "public"."target_inventory_job_result" (
+CREATE TABLE IF NOT EXISTS "public"."target_inventory_job_result" (
   "job_id" uuid NOT NULL,
   "field_profiles_json" jsonb,
   "candidates_json" jsonb,
@@ -273,13 +256,12 @@ COMMENT ON COLUMN "public"."target_inventory_job_result"."table_relationships_js
 COMMENT ON COLUMN "public"."target_inventory_job_result"."relationship_cards_json" IS '关系卡片结果（JSON对象）';
 COMMENT ON COLUMN "public"."target_inventory_job_result"."created_at" IS '创建时间';
 COMMENT ON COLUMN "public"."target_inventory_job_result"."updated_at" IS '更新时间';
-COMMENT ON TABLE "public"."target_inventory_job_result" IS '全域盘点任务结果表';
+COMMENT ON TABLE "public"."target_inventory_job_result" IS '全域盘点结果表 - 存储单个盘点任务产出的全部结果，含字段画像、候选注释、LLM 裁决、字段映射与表关系';
 
 -- ----------------------------
 -- Table structure for model_config
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."model_config";
-CREATE TABLE "public"."model_config" (
+CREATE TABLE IF NOT EXISTS "public"."model_config" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "model_name" varchar COLLATE "pg_catalog"."default" NOT NULL,
   "model_type" varchar COLLATE "pg_catalog"."default" NOT NULL,
@@ -298,13 +280,12 @@ COMMENT ON COLUMN "public"."model_config"."created_at" IS '創建時間';
 COMMENT ON COLUMN "public"."model_config"."updated_at" IS '更新時間';
 COMMENT ON COLUMN "public"."model_config"."model_class" IS '模型作用类别（大语言、重排序、向量化嵌入）';
 COMMENT ON COLUMN "public"."model_config"."url" IS '模型接口url';
-COMMENT ON TABLE "public"."model_config" IS '存储模型配置信息';
+COMMENT ON TABLE "public"."model_config" IS '模型配置表 - 存储大语言、重排序、向量化嵌入等模型的接入配置，含模型名称、类型、接口地址与 API Key';
 
 -- ----------------------------
 -- Table structure for prompt_config
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."prompt_config";
-CREATE TABLE "public"."prompt_config" (
+CREATE TABLE IF NOT EXISTS "public"."prompt_config" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "prompt" text COLLATE "pg_catalog"."default" NOT NULL,
   "file_name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -319,12 +300,12 @@ COMMENT ON COLUMN "public"."prompt_config"."file_name" IS '映射项目目录中
 COMMENT ON COLUMN "public"."prompt_config"."description" IS '提示词作用描述';
 COMMENT ON COLUMN "public"."prompt_config"."created_at" IS '创建时间';
 COMMENT ON COLUMN "public"."prompt_config"."updated_at" IS '更新时间';
-COMMENT ON TABLE "public"."prompt_config" IS '存储相关的提示词配置信息';
+COMMENT ON TABLE "public"."prompt_config" IS '提示词配置表 - 存储各业务环节使用的提示词内容及其作用说明，并与项目目录中的提示词文件一一对应';
 
 -- ============================================================
 -- 一步到位：直接创建“最终结构”的两张表（字段/注释/索引/主键/唯一约束全齐）
 -- 适用：PostgreSQL
--- 注意：本脚本会 DROP 后重建（不做旧表迁移）
+-- 注意：本脚本仅用于【空库初始化】；已全部改为 IF NOT EXISTS，重复执行不会删表丢数据
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -332,9 +313,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================
 -- 1) table_relationship（最终结构）
 -- ============================
-DROP TABLE IF EXISTS "public"."table_relationship";
 
-CREATE TABLE "public"."table_relationship" (
+CREATE TABLE IF NOT EXISTS "public"."table_relationship" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
 
   "table_a" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -366,7 +346,7 @@ CREATE TABLE "public"."table_relationship" (
 );
 
 -- 表/列注释
-COMMENT ON TABLE "public"."table_relationship" IS '表关系表，记录表与表之间的关联关系（关系图谱中的边，支持同源和跨源）';
+COMMENT ON TABLE "public"."table_relationship" IS '表关系表 - 记录表与表之间的关联关系（关系图谱中的边），含关系类型、JOIN 条件、基数与是否跨源';
 
 COMMENT ON COLUMN "public"."table_relationship"."id" IS '主键ID';
 COMMENT ON COLUMN "public"."table_relationship"."table_a" IS '关联表A的表名';
@@ -401,29 +381,29 @@ ALTER TABLE "public"."table_relationship"
   );
 
 -- 索引（保留原有 + 新增 source 复合索引）
-CREATE INDEX "idx_table_relationship_is_cross_source" ON "public"."table_relationship" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_is_cross_source" ON "public"."table_relationship" USING btree (
   "is_cross_source" "pg_catalog"."bool_ops" ASC NULLS LAST
 );
 
-CREATE INDEX "idx_table_relationship_table_a" ON "public"."table_relationship" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_table_a" ON "public"."table_relationship" USING btree (
   "table_a" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_table_relationship_table_a" IS '按表A查询关系的索引';
 
-CREATE INDEX "idx_table_relationship_table_a_ds" ON "public"."table_relationship" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_table_a_ds" ON "public"."table_relationship" USING btree (
   "table_a_datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 
-CREATE INDEX "idx_table_relationship_table_b" ON "public"."table_relationship" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_table_b" ON "public"."table_relationship" USING btree (
   "table_b" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_table_relationship_table_b" IS '按表B查询关系的索引';
 
-CREATE INDEX "idx_table_relationship_table_b_ds" ON "public"."table_relationship" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_table_b_ds" ON "public"."table_relationship" USING btree (
   "table_b_datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 
-CREATE INDEX "idx_table_relationship_source" ON "public"."table_relationship" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_source" ON "public"."table_relationship" USING btree (
   "source_type" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
   "source_job_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
@@ -432,9 +412,8 @@ CREATE INDEX "idx_table_relationship_source" ON "public"."table_relationship" US
 -- ============================
 -- 2) table_relationship_card（最终结构）
 -- ============================
-DROP TABLE IF EXISTS "public"."table_relationship_card";
 
-CREATE TABLE "public"."table_relationship_card" (
+CREATE TABLE IF NOT EXISTS "public"."table_relationship_card" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
 
   "datasource_id" uuid NOT NULL,
@@ -463,7 +442,7 @@ CREATE TABLE "public"."table_relationship_card" (
 );
 
 -- 表/列注释
-COMMENT ON TABLE "public"."table_relationship_card" IS '表关系卡片表，存储每张表的关系元数据卡片（支持同源和跨源）';
+COMMENT ON TABLE "public"."table_relationship_card" IS '表关系卡片表 - 存储每张表的关系元数据卡片，含该表的全部关联关系、卡片版本号与向量索引 UUID';
 
 COMMENT ON COLUMN "public"."table_relationship_card"."id" IS '主键ID';
 COMMENT ON COLUMN "public"."table_relationship_card"."datasource_id" IS '数据源ID';
@@ -492,21 +471,21 @@ ALTER TABLE "public"."table_relationship_card"
   UNIQUE ("datasource_id", "schema_hash", "table_name", "source_job_id");
 
 -- 索引（保留原有 + 新增 source 复合索引）
-CREATE INDEX "idx_table_relationship_card_datasource" ON "public"."table_relationship_card" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_card_datasource" ON "public"."table_relationship_card" USING btree (
   "datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_table_relationship_card_datasource" IS '按数据源查询卡片的索引';
 
-CREATE INDEX "idx_table_relationship_card_has_cross_source" ON "public"."table_relationship_card" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_card_has_cross_source" ON "public"."table_relationship_card" USING btree (
   "has_cross_source_relations" "pg_catalog"."bool_ops" ASC NULLS LAST
 );
 
-CREATE INDEX "idx_table_relationship_card_w_uuid" ON "public"."table_relationship_card" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_card_w_uuid" ON "public"."table_relationship_card" USING btree (
   "w_uuid" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_table_relationship_card_w_uuid" IS '按Weaviate UUID查询的索引，用于向量检索关联';
 
-CREATE INDEX "idx_table_relationship_card_source" ON "public"."table_relationship_card" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_table_relationship_card_source" ON "public"."table_relationship_card" USING btree (
   "source_type" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
   "source_job_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
@@ -514,8 +493,7 @@ CREATE INDEX "idx_table_relationship_card_source" ON "public"."table_relationshi
 -- ----------------------------
 -- Table structure for user_datasource_schemas
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."user_datasource_schemas";
-CREATE TABLE "public"."user_datasource_schemas" (
+CREATE TABLE IF NOT EXISTS "public"."user_datasource_schemas" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "user_id" uuid NOT NULL,
   "db_type" varchar(32) COLLATE "pg_catalog"."default" NOT NULL,
@@ -554,7 +532,7 @@ COMMENT ON COLUMN "public"."user_datasource_schemas"."catalog_type" IS 'Trino ca
 COMMENT ON COLUMN "public"."user_datasource_schemas"."is_view" IS '是否为视图（true=视图，false=普通表）';
 COMMENT ON COLUMN "public"."user_datasource_schemas"."view_name" IS '视图名称（若 is_view=true，则记录视图名）';
 COMMENT ON COLUMN "public"."user_datasource_schemas"."schema_name" IS '数据源 schema 名（PG/MSSQL/Trino/Oracle 用于去重和关联；MySQL/SQLite 可空）';
-COMMENT ON TABLE "public"."user_datasource_schemas" IS '存储用户数据源下的库表结构';
+COMMENT ON TABLE "public"."user_datasource_schemas" IS '用户数据源库表结构表 - 存储用户数据源下已采集的库表结构快照，按 schema 与表名区分，供 NL2SQL 检索使用';
 
 -- 为 connect_info_hash 添加索引（用于快速查询）
 CREATE INDEX IF NOT EXISTS idx_user_datasource_schemas_connect_info_hash ON "public"."user_datasource_schemas"("connect_info_hash");
@@ -562,8 +540,7 @@ CREATE INDEX IF NOT EXISTS idx_user_datasource_schemas_connect_info_hash ON "pub
 -- ----------------------------
 -- Table structure for user_groups
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."user_groups";
-CREATE TABLE "public"."user_groups" (
+CREATE TABLE IF NOT EXISTS "public"."user_groups" (
   "group_id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "creator_user_id" uuid,
   "group_name" varchar(32) COLLATE "pg_catalog"."default",
@@ -577,13 +554,12 @@ COMMENT ON COLUMN "public"."user_groups"."group_name" IS '名称';
 COMMENT ON COLUMN "public"."user_groups"."description" IS '用户组描述';
 COMMENT ON COLUMN "public"."user_groups"."created_at" IS '創建時間';
 COMMENT ON COLUMN "public"."user_groups"."updated_at" IS '更新時間';
-COMMENT ON TABLE "public"."user_groups" IS '存储用户组信息';
+COMMENT ON TABLE "public"."user_groups" IS '用户组表 - 存储用户组的名称、描述与创建人，用于按组管理用户及其资源权限';
 
 -- ----------------------------
 -- Table structure for users
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."users";
-CREATE TABLE "public"."users" (
+CREATE TABLE IF NOT EXISTS "public"."users" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "user_group_id" uuid,
   "username" varchar(32) COLLATE "pg_catalog"."default",
@@ -619,12 +595,12 @@ COMMENT ON COLUMN "public"."users"."created_at" IS '創建時間';
 COMMENT ON COLUMN "public"."users"."updated_at" IS '更新時間';
 COMMENT ON COLUMN "public"."users"."idp_user_id" IS '第三方用户ID（SSO来源）';
 COMMENT ON COLUMN "public"."users"."idp_source" IS '第三方来源标识（如企业A）';
-COMMENT ON TABLE "public"."users" IS '存储用户数据';
+COMMENT ON TABLE "public"."users" IS '用户表 - 存储平台用户的账号、密码、角色、所属用户组与 Weaviate 向量空间等信息';
 
 -- =============================================
 -- query_logs 表（查询历史明细）
 -- =============================================
-CREATE TABLE query_logs (
+CREATE TABLE IF NOT EXISTS query_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     api_key_id UUID,
@@ -665,13 +641,13 @@ CREATE TABLE query_logs (
     term_rewrite_info JSONB
 );
 
-CREATE INDEX ix_query_logs_user_id ON query_logs(user_id);
-CREATE INDEX ix_query_logs_status ON query_logs(status);
-CREATE INDEX ix_query_logs_created_at ON query_logs(created_at);
-CREATE INDEX idx_query_logs_user_created ON query_logs(user_id, created_at);
-CREATE INDEX idx_query_logs_user_status ON query_logs(user_id, status);
+CREATE INDEX IF NOT EXISTS ix_query_logs_user_id ON query_logs(user_id);
+CREATE INDEX IF NOT EXISTS ix_query_logs_status ON query_logs(status);
+CREATE INDEX IF NOT EXISTS ix_query_logs_created_at ON query_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_query_logs_user_created ON query_logs(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_query_logs_user_status ON query_logs(user_id, status);
 -- GIN索引：支持按来源数据源筛选查询历史
-CREATE INDEX idx_query_logs_source_datasource_ids ON query_logs USING GIN (source_datasource_ids);
+CREATE INDEX IF NOT EXISTS idx_query_logs_source_datasource_ids ON query_logs USING GIN (source_datasource_ids);
 
 -- query_logs 表注释
 COMMENT ON TABLE query_logs IS '查询历史明细表 - 记录每次用户查询的完整信息，用于审计、分析和监控';
@@ -716,7 +692,7 @@ COMMENT ON COLUMN query_logs.term_rewrite_info IS '术语展开详情，结构�
 -- =============================================
 -- query_stats_daily 表（监控统计）
 -- =============================================
-CREATE TABLE query_stats_daily (
+CREATE TABLE IF NOT EXISTS query_stats_daily (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     stat_date DATE NOT NULL,
@@ -745,8 +721,8 @@ CREATE TABLE query_stats_daily (
     CONSTRAINT uq_user_stat_date UNIQUE (user_id, stat_date)
 );
 
-CREATE INDEX ix_query_stats_daily_user_id ON query_stats_daily(user_id);
-CREATE INDEX ix_query_stats_daily_stat_date ON query_stats_daily(stat_date);
+CREATE INDEX IF NOT EXISTS ix_query_stats_daily_user_id ON query_stats_daily(user_id);
+CREATE INDEX IF NOT EXISTS ix_query_stats_daily_stat_date ON query_stats_daily(stat_date);
 
 -- query_stats_daily 表注释
 COMMENT ON TABLE query_stats_daily IS '查询统计表（按天聚合）- 用于监控模块，记录每日用户查询的聚合统计数据';
@@ -781,7 +757,7 @@ COMMENT ON COLUMN query_stats_daily.updated_at IS '记录更新时间';
 -- =============================================
 -- system_configs 表（系统配置）- 最终版
 -- =============================================
-CREATE TABLE system_configs (
+CREATE TABLE IF NOT EXISTS system_configs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     config_key VARCHAR(128) NOT NULL,
     config_value TEXT,
@@ -807,8 +783,8 @@ COMMENT ON COLUMN system_configs.updated_at IS '记录更新时间';
 ALTER TABLE system_configs ADD CONSTRAINT uq_config_key_user_id UNIQUE (config_key, user_id);
 
 -- 索引
-CREATE INDEX idx_system_configs_user_id ON system_configs(user_id);
-CREATE INDEX idx_system_configs_key_user ON system_configs(config_key, user_id);
+CREATE INDEX IF NOT EXISTS idx_system_configs_user_id ON system_configs(user_id);
+CREATE INDEX IF NOT EXISTS idx_system_configs_key_user ON system_configs(config_key, user_id);
 
 -- 初始数据
 INSERT INTO system_configs (config_key, config_value, description, user_id) VALUES
@@ -834,16 +810,16 @@ SELECT setval('"public"."datacards_datasource_id_seq"', 1, false);
 -- ----------------------------
 -- Indexes structure for table api_keys
 -- ----------------------------
-CREATE INDEX "idx_api_keys_status_expires" ON "public"."api_keys" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_api_keys_status_expires" ON "public"."api_keys" USING btree (
   "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
   "expires_at" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_api_keys_status_expires" IS '按状态和过期时间筛选 API Key 的索引，用于鉴权与清理';
-CREATE INDEX "idx_api_keys_user_id" ON "public"."api_keys" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_api_keys_user_id" ON "public"."api_keys" USING btree (
   "user_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_api_keys_user_id" IS '按用户查询 API Key 的索引，用于管理页面展示';
-CREATE UNIQUE INDEX "uq_api_keys_plain" ON "public"."api_keys" USING btree (
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_api_keys_plain" ON "public"."api_keys" USING btree (
   "api_key" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."uq_api_keys_plain" IS '明文唯一索引，用于快速鉴权查询';
@@ -856,10 +832,10 @@ COMMENT ON INDEX "public"."uq_api_keys_plain" IS '明文唯一索引，用于快
 -- ----------------------------
 -- Indexes structure for table change_logs
 -- ----------------------------
-CREATE INDEX "idx_change_logs_status" ON "public"."change_logs" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_change_logs_status" ON "public"."change_logs" USING btree (
   "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
-CREATE UNIQUE INDEX "uq_change_logs_version" ON "public"."change_logs" USING btree (
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_change_logs_version" ON "public"."change_logs" USING btree (
   "version" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 
@@ -871,35 +847,35 @@ CREATE UNIQUE INDEX "uq_change_logs_version" ON "public"."change_logs" USING btr
 -- ----------------------------
 -- Indexes structure for table datacards_datasource
 -- ----------------------------
-CREATE INDEX "idx_datacards_datasource_datasource_id" ON "public"."datacards_datasource" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_datacards_datasource_datasource_id" ON "public"."datacards_datasource" USING btree (
   "datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_datacards_datasource_table_name" ON "public"."datacards_datasource" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_datacards_datasource_table_name" ON "public"."datacards_datasource" USING btree (
   "table_name" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_datacards_datasource_user_id" ON "public"."datacards_datasource" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_datacards_datasource_user_id" ON "public"."datacards_datasource" USING btree (
   "user_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 
 -- ----------------------------
 -- Indexes structure for table field_mapping
 -- ----------------------------
-CREATE INDEX "idx_field_mapping_datasource_schema" ON "public"."field_mapping" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_field_mapping_datasource_schema" ON "public"."field_mapping" USING btree (
   "datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST,
   "schema_hash" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_field_mapping_datasource_schema" IS '按数据源和Schema查询的复合索引';
-CREATE INDEX "idx_field_mapping_source" ON "public"."field_mapping" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_field_mapping_source" ON "public"."field_mapping" USING btree (
   "source_table" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
   "source_column" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_field_mapping_source" IS '按源表和源字段查询的复合索引';
-CREATE INDEX "idx_field_mapping_target" ON "public"."field_mapping" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_field_mapping_target" ON "public"."field_mapping" USING btree (
   "target_table" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
   "target_column" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_field_mapping_target" IS '按目标表和目标字段查询的复合索引';
-CREATE INDEX "idx_field_mapping_source_job" ON "public"."field_mapping" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_field_mapping_source_job" ON "public"."field_mapping" USING btree (
   "source_job_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."idx_field_mapping_source_job" IS '按来源任务ID查询的索引';
@@ -912,13 +888,13 @@ ALTER TABLE "public"."field_mapping" ADD CONSTRAINT "field_mapping_pkey" PRIMARY
 -- ----------------------------
 -- Indexes structure for table target_inventory_job
 -- ----------------------------
-CREATE INDEX "idx_target_inventory_job_datasource_id" ON "public"."target_inventory_job" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_target_inventory_job_datasource_id" ON "public"."target_inventory_job" USING btree (
   "datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_target_inventory_job_status" ON "public"."target_inventory_job" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_target_inventory_job_status" ON "public"."target_inventory_job" USING btree (
   "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_target_inventory_job_user_id" ON "public"."target_inventory_job" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_target_inventory_job_user_id" ON "public"."target_inventory_job" USING btree (
   "user_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 
@@ -934,7 +910,7 @@ CREATE INDEX "idx_target_inventory_job_user_id" ON "public"."target_inventory_jo
 -- ----------------------------
 -- Indexes structure for table user_datasource_schemas
 -- ----------------------------
-CREATE INDEX "ix_user_datasource_schemas_user_id" ON "public"."user_datasource_schemas" USING btree (
+CREATE INDEX IF NOT EXISTS "ix_user_datasource_schemas_user_id" ON "public"."user_datasource_schemas" USING btree (
   "user_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 
@@ -946,7 +922,7 @@ ALTER TABLE "public"."user_datasource_schemas" ADD CONSTRAINT "uq_userid_connect
 -- ----------------------------
 -- Indexes for table user_datasource_schemas
 -- ----------------------------
-CREATE INDEX "idx_uds_user_conninfo_schema" ON "public"."user_datasource_schemas" ("user_id", "connect_info", "schema_name");
+CREATE INDEX IF NOT EXISTS "idx_uds_user_conninfo_schema" ON "public"."user_datasource_schemas" ("user_id", "connect_info", "schema_name");
 
 -- ----------------------------
 -- Primary Key structure for table user_datasource_schemas
@@ -966,12 +942,12 @@ ALTER TABLE "public"."user_groups" ADD CONSTRAINT "user_group_pkey" PRIMARY KEY 
 -- ----------------------------
 -- Indexes structure for table users (SSO fields)
 -- ----------------------------
-CREATE INDEX "ix_users_idp_user_id" ON "public"."users" USING btree (
+CREATE INDEX IF NOT EXISTS "ix_users_idp_user_id" ON "public"."users" USING btree (
   "idp_user_id" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."ix_users_idp_user_id" IS '按第三方用户ID查询的索引，用于SSO登录';
 
-CREATE INDEX "ix_users_idp_source" ON "public"."users" USING btree (
+CREATE INDEX IF NOT EXISTS "ix_users_idp_source" ON "public"."users" USING btree (
   "idp_source" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 COMMENT ON INDEX "public"."ix_users_idp_source" IS '按第三方来源查询的索引，用于SSO登录';
@@ -988,8 +964,7 @@ ALTER TABLE "public"."target_inventory_job_result" ADD CONSTRAINT "fk_target_inv
 -- ----------------------------
 -- Table structure for business_term_libraries（业务术语库表）
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."business_term_libraries";
-CREATE TABLE "public"."business_term_libraries" (
+CREATE TABLE IF NOT EXISTS "public"."business_term_libraries" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "name" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
   "description" text COLLATE "pg_catalog"."default",
@@ -1010,18 +985,17 @@ COMMENT ON COLUMN "public"."business_term_libraries"."created_at" IS '创建时�
 COMMENT ON COLUMN "public"."business_term_libraries"."updated_at" IS '更新时间';
 COMMENT ON TABLE "public"."business_term_libraries" IS '业务术语库表 - 存储业务术语库，一个库包含多个业务术语';
 
-CREATE INDEX "idx_business_term_libraries_status" ON "public"."business_term_libraries" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_business_term_libraries_status" ON "public"."business_term_libraries" USING btree (
   "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_business_term_libraries_category" ON "public"."business_term_libraries" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_business_term_libraries_category" ON "public"."business_term_libraries" USING btree (
   "category" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 
 -- ----------------------------
 -- Table structure for business_terms（业务术语表）
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."business_terms";
-CREATE TABLE "public"."business_terms" (
+CREATE TABLE IF NOT EXISTS "public"."business_terms" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "library_id" uuid NOT NULL,
   "term_name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1057,10 +1031,10 @@ COMMENT ON COLUMN "public"."business_terms"."updated_at" IS '更新时间';
 -- UNIQUE constraint for business_terms
 ALTER TABLE "public"."business_terms" ADD CONSTRAINT "uq_business_terms_library_term" UNIQUE ("library_id", "term_name");
 
-CREATE INDEX "idx_business_terms_library_id" ON "public"."business_terms" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_business_terms_library_id" ON "public"."business_terms" USING btree (
   "library_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_business_terms_status" ON "public"."business_terms" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_business_terms_status" ON "public"."business_terms" USING btree (
   "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 
@@ -1072,8 +1046,7 @@ ALTER TABLE "public"."business_terms" ADD CONSTRAINT "fk_business_terms_library"
 -- ============================================================
 -- 数据源-术语库关联表（多对多关系）
 -- ============================================================
-DROP TABLE IF EXISTS "public"."datasource_term_library";
-CREATE TABLE "public"."datasource_term_library" (
+CREATE TABLE IF NOT EXISTS "public"."datasource_term_library" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "datasource_id" uuid NOT NULL,
   "library_id" uuid NOT NULL,
@@ -1098,10 +1071,10 @@ ALTER TABLE "public"."datasource_term_library" ADD CONSTRAINT "uq_datasource_lib
   UNIQUE ("datasource_id", "library_id");
 
 -- 索引
-CREATE INDEX "idx_datasource_term_library_datasource_id" ON "public"."datasource_term_library" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_datasource_term_library_datasource_id" ON "public"."datasource_term_library" USING btree (
   "datasource_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_datasource_term_library_library_id" ON "public"."datasource_term_library" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_datasource_term_library_library_id" ON "public"."datasource_term_library" USING btree (
   "library_id" "pg_catalog"."uuid_ops" ASC NULLS LAST
 );
 
@@ -1113,8 +1086,7 @@ ALTER TABLE "public"."datasource_term_library" ADD CONSTRAINT "fk_datasource_ter
 -- ----------------------------
 -- Table structure for business_term_templates（术语模板表）
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."business_term_templates";
-CREATE TABLE "public"."business_term_templates" (
+CREATE TABLE IF NOT EXISTS "public"."business_term_templates" (
   "id" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
   "category" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
   "template_name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1144,10 +1116,10 @@ COMMENT ON COLUMN "public"."business_term_templates"."updated_at" IS '更新时�
 -- UNIQUE constraint for business_term_templates
 ALTER TABLE "public"."business_term_templates" ADD CONSTRAINT "uq_business_term_templates_category_term" UNIQUE ("category", "term_name");
 
-CREATE INDEX "idx_business_term_templates_category" ON "public"."business_term_templates" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_business_term_templates_category" ON "public"."business_term_templates" USING btree (
   "category" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
-CREATE INDEX "idx_business_term_templates_source" ON "public"."business_term_templates" USING btree (
+CREATE INDEX IF NOT EXISTS "idx_business_term_templates_source" ON "public"."business_term_templates" USING btree (
   "source" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
 
@@ -1708,7 +1680,7 @@ COMMENT ON COLUMN governance_rules.rule_name IS '规则名称，如"手机号非
 COMMENT ON COLUMN governance_rules.rule_type IS '规则类型: null_check=空值检测, unique=唯一性检测, format=格式检测, threshold=阈值检测, enum=枚举检测, custom_sql=自定义SQL, length_check=长度检测, range_check=范围检测, date_check=日期检测, consistency_check=一致性检测, freshness_check=新鲜度检测, value_distribution=值分布检测';
 COMMENT ON COLUMN governance_rules.target_table IS '规则应用于的目标表名，不填则对所有表生效（多表模式下系统会自动识别相关表）';
 COMMENT ON COLUMN governance_rules.target_column IS '规则应用于的目标列名';
-COMMENT ON COLUMN governance_rules.condition_expr IS '规则条件表达式，支持自然语言或SQL表达式，如"手机号为空"或"column IS NULL OR column = ''''''"';
+COMMENT ON COLUMN governance_rules.condition_expr IS '规则条件表达式，支持自然语言或 SQL 表达式（如手机号为空、金额大于等于 0）';
 COMMENT ON COLUMN governance_rules.conditions_config IS '多条件配置JSON，用于composite复合规则类型，格式: {"conditions": [...], "condition_mode": "AND"}';
 COMMENT ON COLUMN governance_rules.sql_text IS '规则对应的检测SQL语句，用于预览和执行时的查询语句';
 COMMENT ON COLUMN governance_rules.severity IS '规则严重级别: critical=严重需立即处理, warning=警告建议处理, info=参考信息';
@@ -1965,7 +1937,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- =============================================
 -- 6. 报告文件关联表（用于追踪同一报告的所有导出文件）
--- 解决：一份报告可导出多种格式，每次导出生成独立 文件，旧文件路径需被追踪以便删除
+-- 解决：一份报告可导出多种格式，每次导出生成独立文件，旧文件路径需被追踪以便删除
 -- =============================================
 CREATE TABLE IF NOT EXISTS governance_report_files (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),                    -- 文件记录ID
@@ -2003,3 +1975,20 @@ ON "public"."table_relationship" USING btree ("governance_report_id");
 
 CREATE INDEX IF NOT EXISTS idx_table_relationship_card_governance_report_id
 ON "public"."table_relationship_card" USING btree ("governance_report_id");
+
+-- ========== 由对齐脚本补充（model 有、原 init.sql 缺）==========
+COMMENT ON COLUMN "public"."governance_rule_templates"."category" IS '模板分类：基础检测、格式检测、阈值检测、枚举检测、日期检测、一致性检测、新鲜度检测、分布检测';
+COMMENT ON COLUMN "public"."governance_rule_templates"."condition_placeholder_hint" IS '条件占位符提示（如 min/max/days 等参数的说明）';
+COMMENT ON COLUMN "public"."governance_rule_templates"."default_severity" IS '默认严重级别: critical, warning, info';
+COMMENT ON COLUMN "public"."users"."weaviate_class_name" IS '该用户绑定的 Weaviate 向量空间 class 名';
+
+-- ========== 由对齐脚本补充：model 声明但原 init.sql 未建的索引 ==========
+CREATE INDEX IF NOT EXISTS "idx_datasource_table" ON "datacards_datasource" ("datasource_id", "table_name");
+CREATE INDEX IF NOT EXISTS "idx_user_datasource" ON "datacards_datasource" ("user_id", "datasource_id");
+CREATE INDEX IF NOT EXISTS "ix_datacards_datasource_doc_id" ON "datacards_datasource" ("doc_id");
+CREATE INDEX IF NOT EXISTS "ix_datasource_infos_user_id" ON "datasource_infos" ("user_id");
+CREATE INDEX IF NOT EXISTS "ix_field_mapping_datasource_id" ON "field_mapping" ("datasource_id");
+CREATE INDEX IF NOT EXISTS "ix_table_relationship_card_governance_job_id" ON "table_relationship_card" ("governance_job_id");
+CREATE INDEX IF NOT EXISTS "ix_table_relationship_card_source_job_id" ON "table_relationship_card" ("source_job_id");
+CREATE INDEX IF NOT EXISTS "ix_table_relationship_governance_job_id" ON "table_relationship" ("governance_job_id");
+CREATE INDEX IF NOT EXISTS "ix_table_relationship_source_job_id" ON "table_relationship" ("source_job_id");

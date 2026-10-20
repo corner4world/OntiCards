@@ -38,7 +38,7 @@ class QueryLog(db.Model):
 
     api_key_id = Column(
         UUID(as_uuid=True),
-        comment="API Key ID（如果通过API调用）"
+        comment='API Key ID（如果通过API调用则记录）'
     )
 
     # === 查询内容 ===
@@ -51,13 +51,13 @@ class QueryLog(db.Model):
     # === 术语展开后的查询内容（新增） ===
     processed_question = Column(
         Text,
-        comment="实际用于检索/生成SQL的问题（术语展开后）"
+        comment='实际用于检索/生成SQL的问题（术语展开后），如果未进行术语展开则为空'
     )
 
     # === 术语展开详情（新增） ===
     term_rewrite_info = Column(
         JSONB,
-        comment="术语展开详情，包含匹配的术语列表等信息"
+        comment='术语展开详情，结构为：{"enabled": true/false, "matched_count": 数量, "matched_terms": [...], "rewritten_question": "转写后的问题"},如果未进行术语展开则为空{}'
     )
 
     sql = Column(
@@ -71,59 +71,59 @@ class QueryLog(db.Model):
     # 如果用户选中多个数据源查询，则 source_datasource_ids 包含这几个数据源ID
     source_datasource_ids = Column(
         JSONB,
-        comment="查询来源数据源ID列表 ['uuid1', 'uuid2']，表示用户发起查询时选中的数据源"
+        comment='查询来源数据源ID列表，表示用户发起查询时选中的数据源'
     )
 
     source_datasource_names = Column(
         JSONB,
-        comment="查询来源数据源名称列表（冗余，便于展示）['生产库', '测试库']"
+        comment='查询来源数据源名称列表（冗余，便于展示）'
     )
 
     # === 涉及数据源（查询过程中涉及到的所有数据源）===
     datasource_ids = Column(
         JSONB,
-        comment="涉及的数据源ID列表 ['uuid1', 'uuid2']"
+        comment='涉及的数据源ID列表，查询过程中涉及到的所有数据源'
     )
 
     datasource_names = Column(
         JSONB,
-        comment="数据源名称列表（冗余，便于展示）['生产库', '测试库']"
+        comment='涉及的数据源名称列表（冗余，便于展示）'
     )
 
     table_names = Column(
         JSONB,
-        comment="涉及的表名列表 ['orders', 'users']"
+        comment='涉及的表名列表'
     )
 
     # === 性能指标（毫秒） ===
     total_duration_ms = Column(
         Integer,
-        comment="总耗时(ms)"
+        comment='总耗时（毫秒）'
     )
 
     vector_search_ms = Column(
         Integer,
-        comment="向量检索耗时(ms)"
+        comment='向量检索耗时（毫秒）'
     )
 
     rerank_ms = Column(
         Integer,
-        comment="重排序耗时(ms)"
+        comment='重排序耗时（毫秒）'
     )
 
     llm_gen_sql_ms = Column(
         Integer,
-        comment="LLM生成SQL耗时(ms)"
+        comment='LLM生成SQL耗时（毫秒）'
     )
 
     sql_execution_ms = Column(
         Integer,
-        comment="SQL执行耗时(ms)"
+        comment='SQL执行耗时（毫秒）'
     )
 
     fusion_ms = Column(
         Integer,
-        comment="跨库融合耗时(ms)"
+        comment='跨库融合耗时（毫秒）'
     )
 
     # === Token消耗 ===
@@ -212,7 +212,7 @@ class QueryLog(db.Model):
     # === 完整响应结果（JSON） ===
     full_response_result = Column(
         JSONB,
-        comment="完整接口返回结果（用于回放/分析）"
+        comment='完整接口返回结果（JSON格式，用于回放/分析）'
     )
 
     # === 多数据源 SQL 数组（新增） ===
@@ -220,7 +220,7 @@ class QueryLog(db.Model):
     cluster_sqls = Column(
         JSONB,
         nullable=True,
-        comment="各数据源/簇的SQL数组 [{'datasource_ids': ['xxx'], 'datasource_names': ['xxx'], 'table_names': ['xxx'], 'sql': 'SELECT ...'}], 用于多数据源查询时记录各簇SQL"
+        comment='各数据源/簇的SQL数组，用于多数据源查询时记录各簇SQL'
     )
 
     # === 时间戳 ===
@@ -236,6 +236,10 @@ class QueryLog(db.Model):
     __table_args__ = (
         Index('idx_query_logs_user_created', 'user_id', 'created_at'),
         Index('idx_query_logs_user_status', 'user_id', 'status'),
+
+        db.Index('ix_query_logs_status', 'status'),
+        db.Index('idx_query_logs_source_datasource_ids', 'source_datasource_ids', postgresql_using='gin'),
+        {'comment': '查询历史明细表 - 记录每次用户查询的完整信息，用于审计、分析和监控'},
     )
 
     def __repr__(self):

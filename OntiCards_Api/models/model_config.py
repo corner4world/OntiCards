@@ -8,10 +8,11 @@ class Model_configuration(db.Model):
     __tablename__ = 'model_config'  # 对应表名
     __table_args__ = (
         db.PrimaryKeyConstraint('id', name='model_configuration_pkey'),
+        {'comment': '模型配置表 - 存储大语言、重排序、向量化嵌入等模型的接入配置，含模型名称、类型、接口地址与 API Key'},
     )
     id = db.Column(UUID, server_default=db.text('uuid_generate_v4()'), nullable=False, comment='模型id')
     model_name = db.Column(db.String, nullable=False, comment='模型名称')
-    model_type = db.Column(db.String, nullable=False, comment='模型类型（豆包、千问、DS）')
+    model_type = db.Column(db.String, nullable=False, comment='模型类型（豆包、千问、DS，用户可自定义）')
     model_api_key = db.Column(db.String, nullable=True, comment='模型apikey')
     created_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(), comment='創建時間')
     updated_at = db.Column(db.TIMESTAMP(timezone=True), server_default=func.current_timestamp(),

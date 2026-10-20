@@ -21,6 +21,15 @@ class BusinessTermLibrary(db.Model):
     """业务术语库表 - 存储业务术语库，一个库包含多个业务术语"""
     __tablename__ = "business_term_libraries"
 
+    __table_args__ = (
+
+        db.Index('idx_business_term_libraries_status', 'status'),
+
+        db.Index('idx_business_term_libraries_category', 'category'),
+
+        {'comment': '业务术语库表 - 存储业务术语库，一个库包含多个业务术语'},
+
+    )
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,

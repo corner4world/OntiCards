@@ -71,35 +71,36 @@ class GovernanceRuleTemplate(db.Model):
     """治理规则模板模型（系统预置）"""
     __tablename__ = 'governance_rule_templates'
 
+    __table_args__ = {'comment': '数据治理规则模板表 - 存储系统预置的规则模板，用户可从模板快速导入规则'}
     id = db.Column(
         db.String(50),
         primary_key=True,
-        comment='模板ID'
+        comment='模板唯一标识符，如"tmpl-null-check"'
     )
     rule_type = db.Column(
         db.String(50),
         nullable=False,
-        comment='规则类型'
+        comment='模板对应的规则类型'
     )
     template_name = db.Column(
         db.String(255),
         nullable=False,
-        comment='模板名称'
+        comment='模板显示名称，如"空值检测"'
     )
     description = db.Column(
         db.Text,
         nullable=True,
-        comment='模板描述'
+        comment='模板功能描述'
     )
     default_condition = db.Column(
         db.Text,
         nullable=True,
-        comment='默认条件表达式'
+        comment='模板默认的条件表达式，用户导入时可修改'
     )
     applicable_columns = db.Column(
         db.Text,
         nullable=True,
-        comment='适用的列类型'
+        comment='模板适用的列数据类型，多个用逗号分隔'
     )
     default_severity = db.Column(
         db.String(20),
@@ -117,10 +118,10 @@ class GovernanceRuleTemplate(db.Model):
         comment='模板分类：基础检测、格式检测、阈值检测、枚举检测、日期检测、一致性检测、新鲜度检测、分布检测'
     )
     created_at = db.Column(
-        db.TIMESTAMP(timezone=True),
+        db.TIMESTAMP(),
         server_default=func.current_timestamp(),
         nullable=False,
-        comment='创建时间'
+        comment='模板创建时间'
     )
 
     @property

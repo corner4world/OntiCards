@@ -29,7 +29,7 @@ class SystemConfig(db.Model):
     user_id = Column(
         db.UUID(as_uuid=True),
         nullable=True,
-        comment="所属用户ID（NULL=系统级配置）"
+        comment='所属用户ID（NULL=系统级配置，非NULL=用户级配置）'
     )
 
     # === 配置键值 ===
@@ -66,6 +66,10 @@ class SystemConfig(db.Model):
     # === 唯一约束 ===
     __table_args__ = (
         UniqueConstraint('config_key', 'user_id', name='uq_config_key_user_id'),
+
+        db.Index('idx_system_configs_user_id', 'user_id'),
+        db.Index('idx_system_configs_key_user', 'config_key', 'user_id'),
+        {'comment': '系统配置表 - 存储系统运行时配置参数，支持系统级和用户级配置'},
     )
 
     def __repr__(self):

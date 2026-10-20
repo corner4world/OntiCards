@@ -19,6 +19,17 @@ class BusinessTermTemplate(db.Model):
     """业务术语模板表 - 预置行业术语模板，只读不修改，用户可导入到业务术语表"""
     __tablename__ = "business_term_templates"
 
+    __table_args__ = (
+
+        db.UniqueConstraint('category', 'term_name', name='uq_business_term_templates_category_term'),
+
+        db.Index('idx_business_term_templates_category', 'category'),
+
+        db.Index('idx_business_term_templates_source', 'source'),
+
+        {'comment': '业务术语模板表 - 预置行业术语模板，只读不修改，用户可导入到业务术语表'},
+
+    )
     id = Column(
         String(50),
         primary_key=True,
@@ -27,7 +38,6 @@ class BusinessTermTemplate(db.Model):
     category = Column(
         String(100),
         nullable=False,
-        index=True,
         comment="行业/场景分类（如 电商零售、ERP生产制造）"
     )
     template_name = Column(
@@ -64,7 +74,6 @@ class BusinessTermTemplate(db.Model):
         String(100),
         nullable=False,
         default="system",
-        index=True,
         comment="来源：system=系统预置，custom=用户自定义"
     )
     created_at = Column(
