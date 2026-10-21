@@ -48,7 +48,7 @@ import re
 import sys
 from datetime import datetime
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCRIPTS = os.path.join(ROOT, "scripts")
 for _p in (ROOT, SCRIPTS):
     if _p not in sys.path:
