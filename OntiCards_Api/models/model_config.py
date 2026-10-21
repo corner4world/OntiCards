@@ -7,7 +7,7 @@ from extensions.ext_database import db
 class Model_configuration(db.Model):
     __tablename__ = 'model_config'  # 对应表名
     __table_args__ = (
-        db.PrimaryKeyConstraint('id', name='model_configuration_pkey'),
+        db.PrimaryKeyConstraint('id', name='model_config_pkey'),
         {'comment': '模型配置表 - 存储大语言、重排序、向量化嵌入等模型的接入配置，含模型名称、类型、接口地址与 API Key'},
     )
     id = db.Column(UUID, server_default=db.text('uuid_generate_v4()'), nullable=False, comment='模型id')

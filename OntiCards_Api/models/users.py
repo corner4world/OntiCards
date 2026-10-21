@@ -16,7 +16,7 @@ class User(db.Model, flask_login.UserMixin):
 
     __tablename__ = 'users'
     __table_args__ = (
-        db.PrimaryKeyConstraint('id', name='user_pkeys'),
+        db.PrimaryKeyConstraint('id', name='users_pkey'),
         {'comment': '用户表 - 存储平台用户的账号、密码、角色、所属用户组与 Weaviate 向量空间等信息'},
     )
 
