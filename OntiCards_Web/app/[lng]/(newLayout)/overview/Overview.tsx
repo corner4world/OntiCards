@@ -66,7 +66,7 @@ const useDarkMode = () => {
 const getDbTypeIcon = (dbType: string) => {
   const type = dbType?.toLowerCase() || '';
   if (type.includes('mariadb')) {
-    return { icon: '🦭', bg: 'from-cyan-50 to-teal-100' };
+    return { icon: '🐚', bg: 'from-cyan-50 to-teal-100' };
   }
   if (type.includes('mysql')) {
     return { icon: '🐬', bg: 'from-sky-50 to-sky-100' };
@@ -316,10 +316,10 @@ const OverviewPage = ({ lng }: { lng: string }) => {
     return `${d} 天前`;
   };
 
-const hasDataSources = (dataSources?.length ?? 0) > 0;
+  const hasDataSources = (dataSources?.length ?? 0) > 0;
 
 // 派生出的整体统计信息
-const totalSources = dataSources?.length ?? 0;
+  const totalSources = dataSources?.length ?? 0;
   const totalTables = (dataSources ?? []).reduce(
     (sum, ds) => sum + (ds.table_num || 0),
     0,
@@ -439,14 +439,14 @@ const totalSources = dataSources?.length ?? 0;
                 ].map((db) => {
                   const dbInfo = getDbTypeIcon(db.type);
                   return (
-                  <div
-                    key={db.name}
-                    className="db-type-pill px-3 py-1.5 bg-white border border-slate-200 text-xs flex items-center gap-1.5"
-                    style={{ borderRadius: 9999 }}
-                  >
-                    <span className="text-base leading-none">{dbInfo.icon}</span> {db.name}
-                  </div>
-                );
+                    <div
+                      key={db.name}
+                      className="db-type-pill px-3 py-1.5 bg-white border border-slate-200 text-xs flex items-center gap-1.5"
+                      style={{ borderRadius: 9999 }}
+                    >
+                      <span className="text-base leading-none">{dbInfo.icon}</span> {db.name}
+                    </div>
+                  );
                 })}
               </div>
               <button
@@ -613,8 +613,8 @@ const totalSources = dataSources?.length ?? 0;
                             <span
                               className="text-sm font-semibold"
                               style={{ color: step.optional
-                                ? isDark ? '#38bdf8' : '#0284C7'
-                                : isDark ? '#a5b4fc' : '#4F46E5'
+                                  ? isDark ? '#38bdf8' : '#0284C7'
+                                  : isDark ? '#a5b4fc' : '#4F46E5'
                               }}
                             >
                               {index + 1}
@@ -1119,17 +1119,17 @@ const totalSources = dataSources?.length ?? 0;
                         {(() => {
                           const rows = columns.length > 0
                             ? columns.map((c) => ({
-                                name: c.name,
-                                type: c.type,
-                                comment: c.comment ?? '-',
-                                isPrimary: c.is_primary ?? false
-                              }))
+                              name: c.name,
+                              type: c.type,
+                              comment: c.comment ?? '-',
+                              isPrimary: c.is_primary ?? false
+                            }))
                             : filledCols.map((fc) => ({
-                                name: fc.name,
-                                type: '-',
-                                comment: fc.business_meaning || fc.value_range || '-',
-                                isPrimary: false
-                              }));
+                              name: fc.name,
+                              type: '-',
+                              comment: fc.business_meaning || fc.value_range || '-',
+                              isPrimary: false
+                            }));
                           if (rows.length === 0) return null;
                           return (
                             <div className="px-4 pb-3">
@@ -1144,25 +1144,25 @@ const totalSources = dataSources?.length ?? 0;
                               <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 overflow-hidden">
                                 <table className="w-full text-[11px]">
                                   <thead>
-                                    <tr className="bg-slate-100/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 text-left">
-                                      <th className="py-1.5 px-2 font-medium w-10">#</th>
-                                      <th className="py-1.5 px-2 font-medium">字段名</th>
-                                      <th className="py-1.5 px-2 font-medium">类型</th>
-                                      <th className="py-1.5 px-2 font-medium">说明</th>
-                                    </tr>
+                                  <tr className="bg-slate-100/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 text-left">
+                                    <th className="py-1.5 px-2 font-medium w-10">#</th>
+                                    <th className="py-1.5 px-2 font-medium">字段名</th>
+                                    <th className="py-1.5 px-2 font-medium">类型</th>
+                                    <th className="py-1.5 px-2 font-medium">说明</th>
+                                  </tr>
                                   </thead>
                                   <tbody>
-                                    {rows.map((row, i) => (
-                                      <tr key={i} className="border-t border-slate-100 dark:border-slate-700">
-                                        <td className="py-1.5 px-2 text-slate-400 dark:text-slate-500">{i + 1}</td>
-                                        <td className="py-1.5 px-2 text-slate-800 dark:text-slate-200 font-medium">
-                                          {row.isPrimary && <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-500 dark:bg-rose-400 mr-1.5 align-middle"></span>}
-                                          {row.name}
-                                        </td>
-                                        <td className="py-1.5 px-2 text-slate-600 dark:text-slate-400">{row.type}</td>
-                                        <td className="py-1.5 px-2 text-slate-500 dark:text-slate-400">{row.comment}</td>
-                                      </tr>
-                                    ))}
+                                  {rows.map((row, i) => (
+                                    <tr key={i} className="border-t border-slate-100 dark:border-slate-700">
+                                      <td className="py-1.5 px-2 text-slate-400 dark:text-slate-500">{i + 1}</td>
+                                      <td className="py-1.5 px-2 text-slate-800 dark:text-slate-200 font-medium">
+                                        {row.isPrimary && <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-500 dark:bg-rose-400 mr-1.5 align-middle"></span>}
+                                        {row.name}
+                                      </td>
+                                      <td className="py-1.5 px-2 text-slate-600 dark:text-slate-400">{row.type}</td>
+                                      <td className="py-1.5 px-2 text-slate-500 dark:text-slate-400">{row.comment}</td>
+                                    </tr>
+                                  ))}
                                   </tbody>
                                 </table>
                               </div>
@@ -1529,10 +1529,10 @@ const DataSourceCard = ({ ds, lng, onViewDetails, onSettings }: { ds: DataSource
 
 // 顶部汇总用的小芯片
 const SummaryPill = ({
-  icon,
-  label,
-  value,
-}: {
+                       icon,
+                       label,
+                       value,
+                     }: {
   icon: React.ReactNode;
   label: string;
   value: string;
@@ -1548,12 +1548,12 @@ const SummaryPill = ({
 );
 
 const ExploreCard = ({
-  title,
-  desc,
-  btnText,
-  icon,
-  onClick,
-}: {
+                       title,
+                       desc,
+                       btnText,
+                       icon,
+                       onClick,
+                     }: {
   title: string;
   desc: string;
   btnText: string;
@@ -1695,11 +1695,11 @@ const guideSteps = [
 
 // 流程步骤组件
 const GuideStepItem = ({
-  step,
-  index,
-  isLast,
-  isDark,
-}: {
+                         step,
+                         index,
+                         isLast,
+                         isDark,
+                       }: {
   step: typeof guideSteps[0];
   index: number;
   isLast: boolean;

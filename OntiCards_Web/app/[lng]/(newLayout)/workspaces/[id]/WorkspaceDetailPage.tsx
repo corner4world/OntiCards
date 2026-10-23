@@ -137,7 +137,7 @@ const tabs = [
 const getDbTypeIcon = (dbType: string) => {
   const icons: Record<string, string> = {
     mysql: '🐬',
-    mariadb: '🦭',
+    mariadb: '🐚',
     postgresql: '🐘',
     mssql: '📊',
     oracle: '🔵',
