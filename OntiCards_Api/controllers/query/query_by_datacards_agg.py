@@ -912,7 +912,6 @@ def _exec_trino_unified(
 def _pick_template_by_db(db_type: str) -> str:
     m = {
         "mysql": "mysql_multi_table.txt",
-        "mariadb": "mysql_multi_table.txt",
         "postgresql": "postgresql_multi_table.txt",
         "mssql": "mssql_multi_table.txt",
         "oracle": "oracle_multi_table.txt",
@@ -924,6 +923,8 @@ def _pick_template_by_db(db_type: str) -> str:
         "oceanbase": "oceanbase_multi_table.txt",
         # 达梦 DM：基于 Oracle 内核，使用独立的提示词文件（基于 Oracle 模板）
         "dm": "dm_multi_table.txt",
+        # MariaDB 基于MySQL模板 源于MySQL衍生
+        "mariadb": "mariadb_multi_table.txt",
     }
     return m.get((db_type or "").lower(), "mysql_multi_table.txt")
 

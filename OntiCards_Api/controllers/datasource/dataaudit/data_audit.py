@@ -38,7 +38,6 @@ api = Api(bp_data_audit)
 _SQL_FILE_NAMES: Dict[str, str] = {
     "postgresql": "data_audit_postgre.txt",
     "mysql": "data_audit_mysql.txt",
-    "mariadb": "data_audit_mysql.txt",
     "mssql": "data_audit_mssql.txt",
     "oracle": "data_audit_oracle.txt",
     "sqlite": "data_audit_sqlite.txt",
@@ -49,6 +48,8 @@ _SQL_FILE_NAMES: Dict[str, str] = {
     "oceanbase": "data_audit_oceanbase.txt",
     # 达梦 DM：使用独立的 DDL SQL 文件（基于 Oracle 语法，过程+临时表方式）
     "dm": "data_audit_dm.txt",
+    # MariaDB 基于MySQL模板 源于MySQL的衍生
+    "mariadb": "data_audit_mariadb.txt",
 }
 
 _SPLIT_PATTERN = r"--@@split"
@@ -63,7 +64,7 @@ def _bad(msg, code=400): return {"code": code, "msg": msg, "data": None}, 200
 def _normalize_db_type(s: str) -> str:
     s = (s or "").lower()
     if s in ("postgres", "postgresql", "pg"): return "postgresql"
-    if s in ("mysql",): return "mysql"
+    if s in ("mysql", "mariadb"): return "mysql"
     if s in ("mariadb",): return "mariadb"
     if s in ("mssql", "sqlserver", "sql_server"): return "mssql"
     if s in ("oracle", "ora"): return "oracle"
@@ -172,7 +173,7 @@ def _is_ddl_permission_error(exc: Exception, db_type: str) -> bool:
     若识别为权限错误，调用方应降级到应用层统计 _audit_*_direct。
     """
     msg = (str(exc) or "").lower()
-    if db_type in ("mysql", "mariadb", "oceanbase"):
+    if db_type in ("mysql", "oceanbase", "mariadb",):
         # MySQL 1370 = ER_SP_ALTER_ROUTINE_NO_ACCESS
         # OceanBase 沿用 MySQL 错误码
         if "1370" in msg:
@@ -598,6 +599,7 @@ def _call_data_audit_proc(engine: Engine, db_type: str, schema: str, table: str)
         return _fetch_mappings(engine, "SELECT * FROM data_audit(:s, :t)", {"s": schema, "t": table})
     if db_type in ("mysql", "mariadb"):
         # MySQL/MariaDB 存储过程需在该连接语义下执行。
+        # MySQL GTID 模式要求：存储过程内的临时表操作必须在事务外部执行
         # 使用 engine.connect() 而非 engine.begin() 来保持 autocommit=1
         with engine.connect() as conn:
             result = conn.execute(text("CALL data_audit(:s, :t)"), {"s": schema, "t": table})

@@ -280,6 +280,9 @@ class PromptConfigManager:
             "data_audit_oceanbase.txt": "data_audit_ddl_sql/data_audit_oceanbase.txt",
             # 达梦 DM：使用独立的 DDL SQL（基于 Oracle 语法）
             "data_audit_dm.txt": "data_audit_ddl_sql/data_audit_dm.txt",
+            # MariaDB 基于MySQL模板 源自MySQL的衍生
+            "data_audit_mariadb.txt": "data_audit_ddl_sql/data_audit_mariadb.txt",
+
             # Query 提示词
             "postgresql_multi_table.txt": "prompt/query_agg_prompt/postgresql_multi_table.txt",
             "oracle_multi_table.txt": "prompt/query_agg_prompt/oracle_multi_table.txt",
@@ -293,11 +296,14 @@ class PromptConfigManager:
             "oceanbase_multi_table.txt": "prompt/query_agg_prompt/oceanbase_multi_table.txt",
             # 达梦 DM：使用独立的提示词文件（基于 Oracle 模板）
             "dm_multi_table.txt": "prompt/query_agg_prompt/dm_multi_table.txt",
+            # MariaDB 基于MySQL模板 源自MySQL的衍生
+            "mariadb_multi_table.txt": "prompt/query_agg_prompt/mariadb_multi_table.txt",
             "strategy_detect.txt": "prompt/query_agg_prompt/strategy_detect.txt",
             "sql_with_relationship.txt": "prompt/query_agg_prompt/sql_with_relationship.txt",
             "result_fusion.txt": "prompt/query_agg_prompt/result_fusion.txt",
             "retry_whitelist_error.txt": "prompt/query_agg_prompt/retry_whitelist_error.txt",
             "retry_execution_error.txt": "prompt/query_agg_prompt/retry_execution_error.txt",
+
             # Global Inventory 提示词
             "table_relationship_analysis_prompt.txt": "prompt/global_inventory/table_relationship_analysis_prompt.txt",
             "table_relationship_analysis_enhanced_prompt.txt": "prompt/global_inventory/table_relationship_analysis_enhanced_prompt.txt",
@@ -314,6 +320,7 @@ class PromptConfigManager:
             "report_quality_chunk.txt": "prompt/governance/reports_generate/report_quality_chunk.txt",
             "report_overall_summary_chunk.txt": "prompt/governance/reports_generate/report_overall_summary_chunk.txt",
             "report_chunk_prompt.txt": "prompt/governance/reports_generate/report_chunk_prompt.txt",
+
             # DataCard 数据卡片生成提示词
             "datacard_generate_prompt.txt": "prompt/datacard_generate/datacard_generate_prompt.txt",
         }

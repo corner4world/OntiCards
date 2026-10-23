@@ -85,6 +85,8 @@ def sync_all_prompts(project_root: str = None) -> dict:
         "data_audit_oceanbase.txt": "data_audit_ddl_sql/data_audit_oceanbase.txt",
         # 达梦 DM：使用独立的 DDL SQL（基于 Oracle 语法）
         "data_audit_dm.txt": "data_audit_ddl_sql/data_audit_dm.txt",
+        # MariaDB 基于MySQL模板 源自MySQL的衍生
+        "data_audit_mariadb.txt": "data_audit_ddl_sql/data_audit_mariadb.txt",
         # Query 提示词
         "postgresql_multi_table.txt": "prompt/query_agg_prompt/postgresql_multi_table.txt",
         "oracle_multi_table.txt": "prompt/query_agg_prompt/oracle_multi_table.txt",
@@ -98,6 +100,8 @@ def sync_all_prompts(project_root: str = None) -> dict:
         "oceanbase_multi_table.txt": "prompt/query_agg_prompt/oceanbase_multi_table.txt",
         # 达梦 DM：使用独立的提示词文件（基于 Oracle 模板）
         "dm_multi_table.txt": "prompt/query_agg_prompt/dm_multi_table.txt",
+        # MariaDB 基于MySQL模板 源自MySQL的衍生
+        "mariadb_multi_table.txt": "prompt/query_agg_prompt/mariadb_multi_table.txt",
         "strategy_detect.txt": "prompt/query_agg_prompt/strategy_detect.txt",
         "sql_with_relationship.txt": "prompt/query_agg_prompt/sql_with_relationship.txt",
         "result_fusion.txt": "prompt/query_agg_prompt/result_fusion.txt",
@@ -138,6 +142,8 @@ def sync_all_prompts(project_root: str = None) -> dict:
         "data_audit_oceanbase.txt": "OceanBase MySQL 模式 数据盘查 DDL SQL",
         # 达梦 DM：使用独立的 DDL SQL
         "data_audit_dm.txt": "达梦 DM 数据盘查 DDL SQL",
+        "data_audit_mariadb.txt": "MariaDB 数据盘查 DDL SQL",
+
         "postgresql_multi_table.txt": "PostgreSQL 多表查询SQL生成 提示词",
         "oracle_multi_table.txt": "Oracle 多表查询SQL生成 提示词",
         "mssql_multi_table.txt": "SQL Server 多表查询SQL生成 提示词",
@@ -150,6 +156,8 @@ def sync_all_prompts(project_root: str = None) -> dict:
         "oceanbase_multi_table.txt": "OceanBase MySQL 模式 多表查询SQL生成 提示词",
         # 达梦 DM：使用独立的提示词文件
         "dm_multi_table.txt": "达梦 DM 多表查询SQL生成 提示词",
+        "mariadb_multi_table.txt": "MariaDB 多表查询SQL生成 提示词",
+
         "strategy_detect.txt": "查询策略检测提示词",
         "sql_with_relationship.txt": "关联查询 SQL生成 提示词",
         "result_fusion.txt": "结果融合提示词",
@@ -162,12 +170,14 @@ def sync_all_prompts(project_root: str = None) -> dict:
         "dialect_adaptation_prompt.txt": "SQL 方言适配提示词",
         "report_dynamic_prompt.txt": "报告动态生成提示词（reports_generate版）",
         "rule_parsing_prompt.txt": "自然语言规则解析提示词",
+
         # Governance 报告分块提示词
         "report_basic_audit_chunk.txt": "报告基础空值检测板块生成提示词",
         "report_relation_chunk.txt": "报告表关系发现板块生成提示词",
         "report_quality_chunk.txt": "报告规则库质检板块生成提示词",
         "report_overall_summary_chunk.txt": "报告综合总结章节生成提示词",
         "report_chunk_prompt.txt": "报告分块生成通用提示词模板",
+
         # DataCard 数据卡片生成提示词
         "datacard_generate_prompt.txt": "数据卡片生成提示词",
         "datacard_sample_prompt.txt": "数据采样脱敏分析提示词",

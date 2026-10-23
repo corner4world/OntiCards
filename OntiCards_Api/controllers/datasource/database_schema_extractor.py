@@ -46,6 +46,7 @@ api = Api(extract_schema_from_db)
 # Oracle thick模式初始化标志
 _oracle_thick_initialized = False
 
+
 def _init_oracle_thick_mode():
     """
     初始化Oracle thick模式（仅在需要时调用一次）
@@ -167,7 +168,6 @@ def _register_oceanbase_dialect():
 # 注意：调用必须放在 _register_*_dialect 函数定义之后，否则会抛 NameError。
 # OceanBase 函数定义在第 73-160 行，定义完后立即注册一次。
 _register_oceanbase_dialect()
-
 
 # ========== KingBase 方言注册 ==========
 # KingBase 方言注册标志
@@ -302,8 +302,10 @@ class RequestStatusManager:
             for rid in to_remove:
                 self._status_dict.pop(rid, None)
 
+
 # 全局请求状态管理器实例
 request_status_manager = RequestStatusManager()
+
 
 # 数据源连接的全局异常处理和捕获
 class AppDBConnectError(Exception):
@@ -311,6 +313,7 @@ class AppDBConnectError(Exception):
         self.code = code
         self.msg = msg
         super().__init__(msg)
+
 
 # 请求已取消异常
 class RequestCancelledException(Exception):
@@ -386,6 +389,7 @@ REQUIRED_RULES = {
     "dm": [["username", "password", "host", "port"]],
 }
 
+
 # 清洗需要序列化的数据
 def _json_safe(obj):
     if isinstance(obj, Decimal):
@@ -406,6 +410,7 @@ def _json_safe(obj):
     # 兜底：把未知对象转成字符串，避免抛 TypeError
     return str(obj)
 
+
 def _deep_json_safe(data):
     """
     深度清洗，确保 data 可被 json.dumps 序列化。
@@ -413,6 +418,7 @@ def _deep_json_safe(data):
     import json
     # 先序列化再反序列化，强制把所有“非常规对象”变成基础类型
     return json.loads(json.dumps(data, default=_json_safe))
+
 
 def _canonicalize_key(k: str) -> str:
     """将任意风格的键名映射到规范键；不存在则原样返回"""
@@ -471,6 +477,7 @@ def _normalize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
         norm[ck] = v
     return norm
 
+
 def _pick_db_type(payload: Dict[str, Any]) -> str:
     db_type = str(payload.get("db_type") or "").lower()
     if not db_type:
@@ -478,6 +485,7 @@ def _pick_db_type(payload: Dict[str, Any]) -> str:
     if db_type not in DEFAULT_DRIVERS:
         raise ValueError(f"不支持的数据库类型：{db_type}")
     return db_type
+
 
 # mssql自动选择 SQL Server ODBC 驱动（17/18 优先）
 def _auto_pick_mssql_driver() -> str | None:
@@ -495,6 +503,7 @@ def _auto_pick_mssql_driver() -> str | None:
         pass
     return None
 
+
 def _check_required(db_type: str, data: Dict[str, Any]) -> None:
     """满足其中一个规则即可；否则抛出详细错误"""
     rules = REQUIRED_RULES[db_type]
@@ -506,12 +515,14 @@ def _check_required(db_type: str, data: Dict[str, Any]) -> None:
     hint = " 或 ".join([f"[{v}]" for v in variants])
     raise ValueError(f"{db_type} 连接缺少必填项，请至少满足其一：{hint}")
 
+
 # 获取原文连接字符串
 def _to_raw_conn_str(url_or_str) -> str:
     # URL.__str__ 会隐藏密码；必须显式 render_as_string(hide_password=False)
     if isinstance(url_or_str, URL):
         return url_or_str.render_as_string(hide_password=False)
     return str(url_or_str)
+
 
 def build_db_url(
         db_type: str,
@@ -617,7 +628,7 @@ def build_db_url(
     # through OntiCards' existing mysql+pymysql path while keeping db_type separately.
     if db_type in ("mariadb", "oceanbase"):
         return URL.create(
-            drivername=f"mysql+{driver}",   # 即 "mysql+pymysql"
+            drivername=f"mysql+{driver}",  # 即 "mysql+pymysql"
             username=username,
             password=password,
             host=host,
@@ -636,6 +647,7 @@ def build_db_url(
         database=database,
         query=query or None
     )
+
 
 # 拼接数据库连接字符串
 def build_db_url_from_json(payload: Dict[str, Any]) -> str | URL:
@@ -707,6 +719,7 @@ def build_db_url_from_json(payload: Dict[str, Any]) -> str | URL:
         trino_catalog=data.get("catalog"),
         trino_schema=data.get("schema"),
     )
+
 
 def _get_database_version(engine):
     """获取数据库版本信息"""
@@ -796,7 +809,6 @@ def _should_quote(name: str, engine) -> bool:
     return not name_str.isupper() or any(not (c.isalnum() or c in "_$#") for c in name_str)
 
 
-
 def _get_column_names_raw(engine, table_name, schema=None):
     """从数据库元数据字典获取列名，保持大小写原样"""
     dialect = engine.dialect.name.lower()
@@ -857,20 +869,19 @@ def _get_columns_from_all_tab_columns(engine, table_name, schema=None):
     """
     schema = schema or engine.username.upper()
     sql = text("""
-        SELECT
-            COLUMN_NAME,
-            DATA_TYPE,
-            DATA_LENGTH,
-            DATA_PRECISION,
-            DATA_SCALE,
-            NULLABLE,
-            DATA_DEFAULT,
-            COLUMN_ID
-        FROM ALL_TAB_COLUMNS
-        WHERE TABLE_NAME = :tname
-          AND OWNER = :owner
-        ORDER BY COLUMN_ID
-    """)
+               SELECT COLUMN_NAME,
+                      DATA_TYPE,
+                      DATA_LENGTH,
+                      DATA_PRECISION,
+                      DATA_SCALE,
+                      NULLABLE,
+                      DATA_DEFAULT,
+                      COLUMN_ID
+               FROM ALL_TAB_COLUMNS
+               WHERE TABLE_NAME = :tname
+                 AND OWNER = :owner
+               ORDER BY COLUMN_ID
+               """)
     with engine.connect() as conn:
         rows = conn.execute(sql, {"tname": table_name.upper(), "owner": schema.upper()}).fetchall()
         if not rows and table_name != table_name.upper():
@@ -1096,7 +1107,7 @@ def _database_type_for_response(original_db_type: str, engine) -> str:
 def get_tables(inspector, engine, payload):
     """
     获取数据库中的表和视图列表
-    
+
     支持的数据源类型：
     - MySQL: 同时获取表和视图
     - PostgreSQL: 同时获取表和视图
@@ -1104,7 +1115,7 @@ def get_tables(inspector, engine, payload):
     - MSSQL: 同时获取表和视图
     - SQLite: 同时获取表和视图
     - Trino: 仅获取表（视图支持有限）
-    
+
     返回格式：
     统一返回字典列表，每个元素为：{"name": "表名或视图名", "type": "TABLE" 或 "VIEW"}
     """
@@ -1417,7 +1428,8 @@ def insert_table_info_to_db(payload: dict, user_id: str, connect_info: str, conn
     """
 
     print("------------初次表提取结果入库------------")
-    print(f"payload keys: {list(payload.keys())}\nuser_id:{user_id}\nrequest_id:{request_id}\nschema_name:{schema_name}")
+    print(
+        f"payload keys: {list(payload.keys())}\nuser_id:{user_id}\nrequest_id:{request_id}\nschema_name:{schema_name}")
 
     db_type = (payload.get("database_type") or "").lower()
     db_version = payload.get("database_version", "")
@@ -1446,9 +1458,9 @@ def insert_table_info_to_db(payload: dict, user_id: str, connect_info: str, conn
     elif db_type == "dm":
         # 达梦: 优先 target_schema / schema，否则使用 username（达梦默认 schema = 用户名大写）
         db_name_for_rows = (
-            db_connect_info_payload.get("target_schema")
-            or db_connect_info_payload.get("schema")
-            or (url.username or "").upper()
+                db_connect_info_payload.get("target_schema")
+                or db_connect_info_payload.get("schema")
+                or (url.username or "").upper()
         )
     elif db_type in ("postgresql", "mysql", "mariadb", "mssql", "kingbase"):
         db_name_for_rows = url.database
@@ -1966,7 +1978,7 @@ def _detect_and_guard_oceanbase_mode(engine):
                     ver = str(row[0])
                     detect_info["ob_version"] = ver
                     if "oceanbase" in ver.lower():
-                        detect_info["mode"] = "MYSQL"   # 能拿到这种格式说明是 MySQL 模式
+                        detect_info["mode"] = "MYSQL"  # 能拿到这种格式说明是 MySQL 模式
                         detect_info["method"] = "version_string"
             except Exception:
                 pass
@@ -2088,7 +2100,8 @@ def get_db_engine(connection_string_str: str, db_type: str = None):
         if "trino://" in connection_string_str.lower():
             # Trino 使用简单的 SELECT 1
             test_sql = "SELECT 1"
-        elif ("oracle" in connection_string_str.lower() or "dm+dmPython" in connection_string_str.lower()) and "trino://" not in connection_string_str.lower():
+        elif (
+                "oracle" in connection_string_str.lower() or "dm+dmPython" in connection_string_str.lower()) and "trino://" not in connection_string_str.lower():
             # 原生 Oracle 连接使用 DUAL；达梦 DM 也兼容 DUAL 语法，沿用 Oracle 风格
             test_sql = "SELECT 1 FROM DUAL"
         else:
@@ -2156,7 +2169,8 @@ def get_db_engine(connection_string_str: str, db_type: str = None):
                 # 根据数据库类型选择合适的测试 SQL
                 if "trino://" in downgraded.lower():
                     test_sql = "SELECT 1"
-                elif ("oracle" in downgraded.lower() or "dm+dmPython" in downgraded.lower()) and "trino://" not in downgraded.lower():
+                elif (
+                        "oracle" in downgraded.lower() or "dm+dmPython" in downgraded.lower()) and "trino://" not in downgraded.lower():
                     # Oracle / 达梦 DM：使用 DUAL
                     test_sql = "SELECT 1 FROM DUAL"
                 else:
@@ -2171,20 +2185,20 @@ def get_db_engine(connection_string_str: str, db_type: str = None):
         # 检测 MSSQL 连接（包括 ODBC DSN 格式）
         conn_upper = connection_string_str.upper()
         is_mssql = (
-            "mssql" in connection_string_str.lower() or
-            "pyodbc" in connection_string_str.lower() or
-            ("DRIVER=" in conn_upper and "SQL SERVER" in conn_upper) or
-            ("DRIVER=" in conn_upper and "ODBC DRIVER" in conn_upper)
+                "mssql" in connection_string_str.lower() or
+                "pyodbc" in connection_string_str.lower() or
+                ("DRIVER=" in conn_upper and "SQL SERVER" in conn_upper) or
+                ("DRIVER=" in conn_upper and "ODBC DRIVER" in conn_upper)
         )
         is_ssl_cert_error = (
-            "ssl routines" in msg_low and "certificate verify failed" in msg_low
-        ) or (
-            "self-signed certificate" in msg_low
-        ) or (
-            "0a000086" in msg_low
-        ) or (
-            "0a00014d" in msg_low or "legacy sigalg" in msg_low
-        )
+                                    "ssl routines" in msg_low and "certificate verify failed" in msg_low
+                            ) or (
+                                    "self-signed certificate" in msg_low
+                            ) or (
+                                    "0a000086" in msg_low
+                            ) or (
+                                    "0a00014d" in msg_low or "legacy sigalg" in msg_low
+                            )
         if is_mssql and is_ssl_cert_error:
             fixed_conn = _fix_mssql_connection_for_legacy_ssl(connection_string_str)
             if fixed_conn:
@@ -2288,7 +2302,8 @@ def get_db_engine(connection_string_str: str, db_type: str = None):
 
         # === ②.5 达梦 DM 特定错误 ===
         # 达梦错误码格式：-6602/-7001 等，错误信息包含中文
-        if ("dm" in err_low or "dameng" in err_low) and ("用户名" in err_raw or "密码" in err_raw or "password" in err_low):
+        if ("dm" in err_low or "dameng" in err_low) and (
+                "用户名" in err_raw or "密码" in err_raw or "password" in err_low):
             raise AppDBConnectError(400, "用户名或密码错误，请检查后重试")
         if "网络通信" in err_raw or "-7001" in err_low or "-6602" in err_low:
             # -6602: 网络包错误；-7001: 连接中断
@@ -2812,7 +2827,8 @@ class ExtractSchemaAPI(Resource):
         existing_datasource = existing_datasource_query.one_or_none()
         if existing_datasource:
             # 数据源已存在，拒绝添加
-            schema_hint = f"，schema：{current_schema_name}" if (_has_schema_dim(db_type_raw) and current_schema_name) else ""
+            schema_hint = f"，schema：{current_schema_name}" if (
+                        _has_schema_dim(db_type_raw) and current_schema_name) else ""
             error_msg = (
                 f"该数据源连接已存在"
                 f"{schema_hint}（名称：{existing_datasource.connect_name}）。"
@@ -2826,7 +2842,8 @@ class ExtractSchemaAPI(Resource):
 
         # 同步更新 db_connect_info_payload 中的 schema 默认值（如果在 build_db_url_from_json 中设置了默认值）
         if not db_connect_info_payload.get("schema"):
-            db_type_from_payload = (db_connect_info_payload.get("dbType") or db_connect_info_payload.get("db_type") or "").lower()
+            db_type_from_payload = (
+                        db_connect_info_payload.get("dbType") or db_connect_info_payload.get("db_type") or "").lower()
             if db_type_from_payload == "postgresql" or db_type_from_payload == "kingbase":
                 db_connect_info_payload["schema"] = "public"
                 print(f"[DEBUG] 同步设置 {db_type_from_payload} schema 默认值: public")
@@ -2888,14 +2905,15 @@ class ExtractSchemaAPI(Resource):
             dialect = engine.dialect.name.lower()
             if dialect == "oracle":
                 # 优先使用 target_schema（用户指定的 schema），否则使用 username（默认行为）
-                target_schema = (db_connect_info_payload.get("target_schema") or db_connect_info_payload.get("username") or "").upper()
+                target_schema = (db_connect_info_payload.get("target_schema") or db_connect_info_payload.get(
+                    "username") or "").upper()
             elif dialect == "dm":
                 # 达梦 DM：与 Oracle 类似，target_schema / schema 优先，否则使用 username 大写
                 target_schema = (
-                    db_connect_info_payload.get("target_schema")
-                    or db_connect_info_payload.get("schema")
-                    or db_connect_info_payload.get("username")
-                    or ""
+                        db_connect_info_payload.get("target_schema")
+                        or db_connect_info_payload.get("schema")
+                        or db_connect_info_payload.get("username")
+                        or ""
                 ).upper()
             elif dialect == "mysql":
                 target_schema = db_connect_info_payload.get("database")
@@ -2940,12 +2958,14 @@ class ExtractSchemaAPI(Resource):
                 if dialect_name == "oracle":
                     # 策略：先尝试原始表名（可能是小写的带引号创建的表）
                     try:
-                        table_info = _extract_table_info(inspector, original_table_name, schema=target_schema, is_view=is_view)
+                        table_info = _extract_table_info(inspector, original_table_name, schema=target_schema,
+                                                         is_view=is_view)
                     except NoSuchTableError:
                         # 如果失败且表名不是全大写，尝试使用大写表名（Oracle默认行为）
                         if original_table_name != original_table_name.upper():
                             try:
-                                table_info = _extract_table_info(inspector, original_table_name.upper(), schema=target_schema, is_view=is_view)
+                                table_info = _extract_table_info(inspector, original_table_name.upper(),
+                                                                 schema=target_schema, is_view=is_view)
                             except NoSuchTableError:
                                 # 两种方式都失败，抛出异常
                                 raise
@@ -2954,7 +2974,8 @@ class ExtractSchemaAPI(Resource):
                             raise
                 else:
                     # 非 Oracle 数据库，直接使用原始表名
-                    table_info = _extract_table_info(inspector, original_table_name, schema=target_schema, is_view=is_view)
+                    table_info = _extract_table_info(inspector, original_table_name, schema=target_schema,
+                                                     is_view=is_view)
 
                 # 关键：确保返回的 table_info 中的 table_name 是原始表名
                 if table_info:
@@ -3010,11 +3031,11 @@ class ExtractSchemaAPI(Resource):
             # 达梦 DM 与 Oracle 行为一致：target_schema 优先；否则使用 username
             oracle_database_name = None
             if (dbt == "oracle" or dbt == "dm") and (
-                db_connect_info_payload.get("target_schema") or db_connect_info_payload.get("schema")
+                    db_connect_info_payload.get("target_schema") or db_connect_info_payload.get("schema")
             ):
                 oracle_database_name = (
-                    db_connect_info_payload.get("target_schema")
-                    or db_connect_info_payload.get("schema")
+                        db_connect_info_payload.get("target_schema")
+                        or db_connect_info_payload.get("schema")
                 )
 
             datasource_info, created = upsert_datasource_info(
@@ -3048,7 +3069,8 @@ class ExtractSchemaAPI(Resource):
                 flask_login.current_user.id,
                 connection_string_str,
                 connect_name,
-                datasource_id=str(datasource_info.get("id")) if datasource_info else None,  # 传入 datasource_id（datasource_info 是字典）
+                datasource_id=str(datasource_info.get("id")) if datasource_info else None,
+                # 传入 datasource_id（datasource_info 是字典）
                 request_id=request_id,
                 weaviate_class_name=user_class,  # 新增
             )
@@ -3400,6 +3422,7 @@ class ConnectTestAPI(Resource):
                 except Exception:
                     pass
 
+
 # ========== 新增：取消请求接口 ==========
 class CancelExtractSchemaAPI(Resource):
     @login_required
@@ -3448,12 +3471,14 @@ class CancelExtractSchemaAPI(Resource):
                                       or config.get("db_type")
                                       or "").lower()
                     cancel_schema_name = _resolve_schema_name(cancel_db_type, config, connect_info)
-                    print(f"[CANCEL] 从配置构建连接字符串成功 db_type={cancel_db_type} schema_name={cancel_schema_name}")
+                    print(
+                        f"[CANCEL] 从配置构建连接字符串成功 db_type={cancel_db_type} schema_name={cancel_schema_name}")
                 except Exception as e:
                     print(f"[CANCEL/WARN] 构建连接字符串失败: {str(e)}")
 
             if connect_info and str(connect_info).strip():
-                print(f"[CANCEL] 开始清理数据：user_id={user_id}, connect_info={connect_info}, schema_name={cancel_schema_name}")
+                print(
+                    f"[CANCEL] 开始清理数据：user_id={user_id}, connect_info={connect_info}, schema_name={cancel_schema_name}")
 
                 # 2.1 删除表结构数据（UserDatasourceSchema）
                 # 按 db_type 分支决定是否带 schema_name 过滤（避免误删同 connect_info 不同 schema 的行）
@@ -3463,7 +3488,8 @@ class CancelExtractSchemaAPI(Resource):
                     UserDatasourceSchema.user_id == user_id,
                     UserDatasourceSchema.connect_info_hash == connect_info_hash
                 )
-                schemas_to_delete_query = _add_schema_filter(schemas_to_delete_query, cancel_db_type, cancel_schema_name)
+                schemas_to_delete_query = _add_schema_filter(schemas_to_delete_query, cancel_db_type,
+                                                             cancel_schema_name)
                 schemas_to_delete = schemas_to_delete_query.all()
 
                 deleted_schemas = len(schemas_to_delete)
