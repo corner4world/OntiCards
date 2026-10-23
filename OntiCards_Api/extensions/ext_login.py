@@ -41,9 +41,7 @@ def load_user_from_request(request_from_flask_login):
 
     auth_token = request.headers.get('Authorization', '')
     if not auth_token:
-        auth_token = request.args.get('_token')
-        if not auth_token:
-            raise Unauthorized('Missing Authorization token.')
+        raise Unauthorized('Missing Authorization token.')
 
     try:
         decoded = PassportService().verify(auth_token)
