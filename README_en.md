@@ -31,7 +31,7 @@ What you need is not a more powerful LLM, but a **bridge between your business d
 
 ## ✨ Core Value: Solving the Four Biggest Pain Points of Enterprise Data AI
 
-- **Breaks down data silos**: Compatible with 9 mainstream and domestic Chinese databases, unifying multi-source heterogeneous data on a single platform
+- **Breaks down data silos**: Compatible with 10 mainstream and domestic Chinese databases, unifying multi-source heterogeneous data on a single platform
 
 - **Solves "AI can't read your data"**: AI automatically generates Smart Data Cards that structure table purposes, column definitions, sensitivity flags, and business relationships — so LLMs can precisely understand your proprietary data
 
