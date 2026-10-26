@@ -2562,6 +2562,7 @@ class QueryByDataCardsAggPlugin(Resource):
         user_question = (body.get("query") or "").strip()
         if not user_question:
             return format_response(None, 400, "请提供 query")
+        original_question = user_question
 
         # 初始化性能指标收集器
         metrics = {
