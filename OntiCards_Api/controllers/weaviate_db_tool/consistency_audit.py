@@ -78,9 +78,9 @@ from weaviate.connect import ConnectionParams
 # ============================================================
 DATABASE_URL = os.getenv(
     "AUDIT_DATABASE_URL",
-    "postgresql+psycopg2://postgres:master_pz123@8.134.183.233:55432/prod-ontiCards",
+    "postgresql+psycopg2://db_username:db_password@db_ip:db_port/db_name",
 )
-WEAVIATE_URL = os.getenv("WEAVIATE_URL", "http://8.134.183.233:8088")
+WEAVIATE_URL = os.getenv("WEAVIATE_URL", "http://weaviate_ip:weaviate_port")
 WEAVIATE_GRPC_PORT = int(os.getenv("GRPC_PORT") or 50051)
 
 USERS_TABLE = "users"
