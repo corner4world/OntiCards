@@ -3030,7 +3030,7 @@ class QueryByDataCardsAggPlugin(Resource):
                 error_msg = f"Trino查询异常：{type(e).__name__}: {str(e)}"
                 _log_query_plugin(
                     user_id=user_id,
-                    question=user_question,
+                    question=original_question,
                     sql=None,
                     source_datasource_ids=source_datasource_ids,
                     source_datasource_names=source_datasource_names,
@@ -3047,8 +3047,13 @@ class QueryByDataCardsAggPlugin(Resource):
                     api_key_id=api_key_id,
                     full_response_result=None,
                     cluster_sqls=None,
-                    processed_question=None,
-                    term_rewrite_info=None
+                    processed_question=user_question if term_rewrite_performed else None,
+                    term_rewrite_info = {
+                        "enabled": enable_term_rewrite,
+                        "matched_count": len(matched_terms),
+                        "matched_terms": matched_terms,
+                        "rewritten_question": rewritten_question
+                    } if term_rewrite_performed else None
                 )
                 return format_response(None, 500, error_msg)
 
@@ -3065,7 +3070,7 @@ class QueryByDataCardsAggPlugin(Resource):
             error_msg = f"分簇失败：{type(e).__name__}: {str(e)}"
             _log_query_plugin(
                 user_id=user_id,
-                question=user_question,
+                question=original_question,
                 sql=None,
                 source_datasource_ids=source_datasource_ids,
                 source_datasource_names=source_datasource_names,
@@ -3082,8 +3087,13 @@ class QueryByDataCardsAggPlugin(Resource):
                 api_key_id=api_key_id,
                 full_response_result=None,
                 cluster_sqls=None,
-                processed_question=None,
-                term_rewrite_info=None
+                processed_question=user_question if term_rewrite_performed else None,
+                term_rewrite_info = {
+                    "enabled": enable_term_rewrite,
+                    "matched_count": len(matched_terms),
+                    "matched_terms": matched_terms,
+                    "rewritten_question": rewritten_question
+                } if term_rewrite_performed else None
             )
             return format_response(None, 500, error_msg)
 
