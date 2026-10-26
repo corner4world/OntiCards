@@ -2871,7 +2871,7 @@ class QueryByDataCardsAggPlugin(Resource):
             }
             _log_query_plugin(
                 user_id=user_id,
-                question=user_question,
+                question=original_question,
                 sql=None,
                 source_datasource_ids=source_datasource_ids,
                 source_datasource_names=source_datasource_names,
