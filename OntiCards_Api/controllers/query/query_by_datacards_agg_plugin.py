@@ -3763,7 +3763,7 @@ class QueryByDataCardsAggPlugin(Resource):
             rule_fusion_cluster_sqls.append(cluster_sql)
         _log_query_plugin(
             user_id=user_id,
-            question=user_question,
+            question=original_question,
             sql=rule_fusion_cluster_sqls[0].get('sql') if rule_fusion_cluster_sqls else None,
             source_datasource_ids=source_datasource_ids,
             source_datasource_names=source_datasource_names,
